@@ -12,8 +12,6 @@
 #define	INVALID_PTR	-1
 //NEW DEFINES
 #define RECORD_NUMBER 16
-
-
 typedef int FILE2;
 typedef int DIR2;
 

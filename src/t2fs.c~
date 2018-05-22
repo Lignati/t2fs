@@ -302,7 +302,7 @@ FILE2 open2 (char *filename){
 int main(){
 	char string1 [52]= "aaaaaaaaaa/bbbbbbbbbbbbb)";
 	char string2 [52];
-	char file [] = "/dir1";
+	char file [] = "/dir1/dir11";
 	int a = sizeof(char);
 	int i,j;	
 	struct t2fs_record record;
