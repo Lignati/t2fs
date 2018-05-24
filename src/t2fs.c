@@ -292,30 +292,82 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 
 
 /*
+Função que retorna o bloco que encontra-se no endereço passado por parametro.
+Ex:
+	bloco = getBloco(iNode.singleIndPtr);		
+*/
+char * getBloco(int i){
+	char buffer[256];
+	char * bloco = (char *) malloc (sizeof(char)*1024);
+	int n;
+	n = (i*4);
+	read_sector (n, buffer);
+	memcpy((void*)&bloco[0],            (void*)&buffer[0],256);
+	read_sector (n+1, buffer);
+	memcpy((void*)&bloco[SECTOR_SIZE*1],(void*)&buffer[0],256);	
+	read_sector (n+2, buffer);
+	memcpy((void*)&bloco[SECTOR_SIZE*2],(void*)&buffer[0],256);
+	read_sector (n+3, buffer);
+	memcpy((void*)&bloco[SECTOR_SIZE*3],(void*)&buffer[0],256);
+	return bloco;	
+}
+
+
+
+
+
+/*
 Função que retorna uma lista do tipo list[iNode.blocksFileSize] contendo
 todos os ponteiros diretos que formam o arquivo.
 */
-DWORD* getPonteiros(struct t2fs_inode iNode){
+DWORD* getListPointer(struct t2fs_inode iNode){
 	//DWORD listBloc[iNode.blocksFileSize];
-	DWORD * listBloc = (DWORD *) calloc (iNode.blocksFileSize, sizeof (DWORD));
+	DWORD * listBloc = (DWORD *) calloc (iNode.blocksFileSize, sizeof (DWORD));	
 	char * bloco = (char *) malloc (sizeof(char)*1024);
+	char * blocoInd = (char *) malloc (sizeof(char)*1024);
 	int i;
+	int contPoint = 0;
+	int PointerPerBloc = sizeof(bloco)/sizeof(DWORD); //quantidade de ponteiros que cabe em um bloco
+	DWORD * listPointerInd = (DWORD *) calloc (PointerPerBloc, sizeof (DWORD));	
+
+
+	
 	//Blocos endereçados diretamente.
-	if (iNode.blocksFileSize == 1)
+	if (iNode.blocksFileSize == 1){
 		listBloc[0] = iNode.dataPtr[0];
-	if (iNode.blocksFileSize == 2)
+		contPoint++;
+	}
+	if (iNode.blocksFileSize == 2){
 		listBloc[1] = iNode.dataPtr[1];
+		contPoint++;
+	}
 	
 	//Indireção simples.
 	if (iNode.singleIndPtr != INVALID_PTR){
-		bloco = getBloco(iNode.singleIndPtr);		
-		for (i = 2; i < iNode.blocksFileSize; i++){
-			memcpy((void *)&(listBloc[i]), (void*)&bloco[4*(i-2)],4);			
+		bloco = getBloco(iNode.singleIndPtr);			
+		for (i = 0; i <= PointerPerBloc && contPoint < iNode.blocksFileSize; i++){			
+			memcpy((void *)&(listBloc[contPoint]), (void*)&bloco[4*(i)],4);			
+			contPoint++;
 		}				
 	}
-	
+	int contBlocInd = 0;
+	DWORD blocoDi;
 	//Indireção Dupla
 	if (iNode.doubleIndPtr != INVALID_PTR){
+		//blocoInd é o bloco de indireção nível 1
+		blocoInd = getBloco(iNode.doubleIndPtr);	
+		while(contPoint < iNode.blocksFileSize){			
+			//blocoDi é o endereço do bloco de nível 2 da indireção. Ou seja,
+			//o bloco que contem os ponteiros dos blocos de dados
+			memcpy((void *)&(blocoDi), (void*)&bloco[4*(contBlocInd)],4);
+			contBlocInd++;		
+			bloco = getBloco(blocoDi);
+			for (i = 0; i <= PointerPerBloc && contPoint < iNode.blocksFileSize; i++){			
+				memcpy((void *)&(listBloc[contPoint]), (void*)&bloco[4*(i)],4);			
+				contPoint++;
+			}
+		}
+		
 	}
 	
 	
@@ -365,6 +417,7 @@ int main(){
 	struct t2fs_record record;
 	struct t2fs_inode inode;
 	DWORD * listBloc;
+	char * bloco = (char *) malloc (sizeof(char)*1024);
 
 	
 	iniciaBloco();
@@ -372,18 +425,27 @@ int main(){
 	//printSuperBloco();
 	
 	
-	
+	/*
 	for (j = 0; j < 5; j++ ){
 		if (getBitmap2(0,j) == 1){
 			inode = leInode(j);
 			printf("inode: %d ---> " , j);
-			listBloc = getPonteiros(inode);
-			printf("fim getPonteiros...\n");
+			listBloc = getListPointer(inode);
+			printf("fim getListPointer...\n");
 			//if (inode.blocksFileSize > 2)
 			//	printf("inode: %d", i);
 			//printf("inode lido...\n");
 			//printInode(leInode(i));
 		}			
+	}
+	*/
+	inode = leInode(1);
+	listBloc = getListPointer(inode);
+	i = 0;
+	while (listBloc[i] != 0){
+		bloco = getBloco(listBloc[i]);
+		printf("bloco: %c", bloco[0]);
+		i++;
 	}
 	
 	
