@@ -15,6 +15,8 @@ int tamanhoBlocoBytes;
 int tamanhoBloco;
 int numeroRecords;
 int initFlag = 0;
+HANDLE fileHandleList[10];
+HANDLE dirHandleList [10];
 // funcao recebe duas strigs retrona na segunda o correspondente ao diretorio atual e na primeira o correspondente ao resto do caminho
 void caminhoParcial(char * stringTotal, char * stringParcial){
 	int i,shift;
@@ -365,16 +367,34 @@ DWORD* getListPointer(struct t2fs_inode iNode){
 	
 	
 }
+void initFileHandleList(){
+	int i;
+	for(i =0;i<10;i++){
+		fileHandleList[i].validade = NAO_VALIDO;
+	}
+
+}
+void initDirHandleList(){
+	int i;
+	for(i =0;i<10;i++){
+
+		fileHandleList[i].validade = NAO_VALIDO;
+	}
+
+}
 //faz as inicializacoes da lib, 'e chamada no comeco de todas as funcoes de usuario
 void init(){
-	if (init ==0);
+	if (initFlag == 0){
+
+
 		carregaSuperBloco();
 		iniciaBloco();
 		diretorioRaizInode  = leInode(0);
 		diretorioAtualInode = leInode(0);
-	initFlag =1;
-
-
+		initFlag = 1;
+		initFileHandleList();
+		initDirHandleList();
+	}
 }
 
 
@@ -391,22 +411,52 @@ void init(){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FILE2 open2 (char *filename){
+	int i,numeroInode;
+	numeroInode = findFile(diretorioAtualInode,filename);
+	if(numeroInode < 0)
+		return -1;
+	i = 0;
 
-	init();
-	/*todo lista de handles*/
-	return findFile(diretorioAtualInode,filename);
+	while(i<10){
+		if(fileHandleList[i].validade == NAO_VALIDO){
+			fileHandleList[i].validade = VALIDO;
+			fileHandleList[i].seekPtr  = 0;
+			fileHandleList[i].inode    = numeroInode;
+			return i;
+		}
+		i++;	
+
+	}
+	return -2;
 }
 DIR2 opendir2 (char *pathname){
-	init();
-	/*todo lista de handles*/
-	return findDir(diretorioAtualInode,pathname);
+	int i,numeroInode;
+	numeroInode = findDir(diretorioAtualInode,pathname);
+	if(numeroInode < 0)
+		return -1;
+	i = 0;
+	while(i<10){
+		if(dirHandleList[i].validade == NAO_VALIDO){
+			dirHandleList[i].validade = VALIDO;
+			dirHandleList[i].seekPtr  = 0;
+			dirHandleList[i].inode    = numeroInode;
+			return i;
+		}
+		i++;	
+
+	}
+	return -2;
 
 
 }
 int chdir2(char *pathname){
+	int numeroInode;
+	numeroInode = findDir(diretorioAtualInode,pathname);
+	if(numeroInode < 0)
+		return -1;
 
-	diretorioAtualInode = leInode(findDir(diretorioAtualInode,pathname));	
-
+	diretorioAtualInode = leInode(numeroInode);	
+	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -416,12 +466,13 @@ int chdir2(char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char file [] = "dir1/../file3";
+	char file [] = "/dir1/dir11";
 
 	int i;
 	init();
-	printInode(leInode(6));
-	printf("%d\n",findFile(diretorioRaizInode,file));
+	printInode(leInode(0));
+	readAndPrintDir(leInode(0));
+	printf("\n%d\n",opendir2(file));
 	printf("\nFIM EXECUCAO\n");
 	
 	return 0;

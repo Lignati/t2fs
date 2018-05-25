@@ -11,8 +11,10 @@
 
 #define	INVALID_PTR	-1
 //NEW DEFINES
-#define RECORD_NUMBER 16
-
+#define RECORD_SIZE 64
+//defines usados para as estruturas de handle
+# define NAO_VALIDO 100
+#define  VALIDO 101
 
 typedef int FILE2;
 typedef int DIR2;
@@ -59,6 +61,12 @@ typedef struct {
     BYTE    fileType;                   /* Tipo do arquivo: regular (0x01) ou diretório (0x02) */
     DWORD   fileSize;                   /* Numero de bytes do arquivo                          */
 } DIRENT2;
+typedef struct{
+	int validade;
+	int inode;
+	int seekPtr;
+} HANDLE
+	
 
 #pragma pack(pop)
 
