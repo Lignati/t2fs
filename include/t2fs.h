@@ -11,7 +11,7 @@
 
 #define	INVALID_PTR	-1
 //NEW DEFINES
-#define RECORD_NUMBER 16
+#define RECORD_SIZE 64
 
 
 typedef int FILE2;

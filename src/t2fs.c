@@ -10,7 +10,12 @@ struct t2fs_inode diretorioAtualInode;
 struct t2fs_superbloco superBloco;
 struct t2fs_inode diretorioRaizInode;
 char * blocoAtual;
-
+int blocoInodesInicial;
+int tamanhoBlocoBytes;
+int tamanhoBloco;
+int numeroRecords;
+int initFlag = 0;
+// funcao recebe duas strigs retrona na segunda o correspondente ao diretorio atual e na primeira o correspondente ao resto do caminho
 void caminhoParcial(char * stringTotal, char * stringParcial){
 	int i,shift;
 	char stringNovoPath[59];
@@ -28,7 +33,7 @@ void caminhoParcial(char * stringTotal, char * stringParcial){
 			i++;
 		}
 		stringParcial[i] = '\0'; 
-		i++;
+		
 	}
 
 	shift = 0;
@@ -37,6 +42,7 @@ void caminhoParcial(char * stringTotal, char * stringParcial){
 		strcpy(stringTotal,"\0");
 		return;
 	}
+	i++;
 	
 	while(stringTotal[i] != '\0'){
 		
@@ -49,11 +55,12 @@ void caminhoParcial(char * stringTotal, char * stringParcial){
 	strcpy(stringTotal,stringNovoPath);
 
 }
-
+//carrega o super bloco e faz os calculos iniciais das variaveis globais, deve estar na init()	
 void carregaSuperBloco(){
 	char buffer[SECTOR_SIZE];
 
 	read_sector (0, buffer);
+	//copia do setor para a estrutura global
 	memcpy((void *)&(superBloco.id),                  (void*)&buffer[0] ,4);
 	memcpy((void *)&(superBloco.version),             (void*)&buffer[4] ,2);
 	memcpy((void *)&(superBloco.superblockSize),      (void*)&buffer[6] ,2);
@@ -62,6 +69,12 @@ void carregaSuperBloco(){
 	memcpy((void *)&(superBloco.inodeAreaSize),       (void*)&buffer[12],2);
 	memcpy((void *)&(superBloco.blockSize),           (void*)&buffer[14],2);
 	memcpy((void *)&(superBloco.diskSize),            (void*)&buffer[16],4);
+	//inicia as varaiveis globais
+	blocoInodesInicial  = superBloco.superblockSize + superBloco.freeBlocksBitmapSize + superBloco.freeInodeBitmapSize;
+	tamanhoBlocoBytes   = SECTOR_SIZE * superBloco.blockSize;
+	tamanhoBloco        = superBloco.blockSize;
+	numeroRecords       = tamanhoBlocoBytes/RECORD_SIZE;
+	
 
 
 
@@ -69,24 +82,21 @@ void carregaSuperBloco(){
 
 void iniciaBloco(){
 	int i;
-	blocoAtual  = (char *) malloc (sizeof(char)*1024);
+	blocoAtual  = (char *) malloc (sizeof(char)*SECTOR_SIZE*tamanhoBloco);
 
 }
-
+/*
+funcao que inicia no heap(malloc) o veotr que contera o bloco atualmente carregado, deve estar na init(), acessar o bloco pela variavel
+global ablocoAtual
+*/
 void carregaBloco(int i){
-	char buffer[256];
-	int n;
-	n = (i*4);
-	//printf("Em carregaBloco...\n");
-	read_sector (n, buffer);
-	//printf("leu primeiro Setor...");
-	memcpy((void*)&blocoAtual[0],            (void*)&buffer[0],256);
-	read_sector (n+1, buffer);
-	memcpy((void*)&blocoAtual[SECTOR_SIZE*1],(void*)&buffer[0],256);	
-	read_sector (n+2, buffer);
-	memcpy((void*)&blocoAtual[SECTOR_SIZE*2],(void*)&buffer[0],256);
-	read_sector (n+3, buffer);
-	memcpy((void*)&blocoAtual[SECTOR_SIZE*3],(void*)&buffer[0],256);
+	char buffer[SECTOR_SIZE];
+	int n,j;
+	n = i*tamanhoBloco;
+	for(j = 0; j<tamanhoBloco;j++){
+		read_sector (n+j, buffer);
+		memcpy((void*)&blocoAtual[SECTOR_SIZE*j],            (void*)&buffer[0],SECTOR_SIZE);
+	}
 }
 
 void printSuperBloco(){
@@ -103,30 +113,12 @@ void printSuperBloco(){
 
 }
 
-void printOcupacaoDebug(){
-	char buffer[SECTOR_SIZE];
-	int i;
-
-	printf("iNodes\n");
-	for(i =0; i<256*4 ;i++){
-		printf("%4d -> %d ",i,getBitmap2 (0,i));
-		if (i%12 == 11 )
-			printf("\n");
-	}
-	printf("\n");
-	printf("Dados\n");
-	for(i =0; i<256*4 ;i++){
-		printf("%4d -> %d ",i,getBitmap2 (1,i));
-		if (i%12 == 11 )
-			printf("\n");
-	}
-}
-
+//retorna uma estrutura inode e le o inode referente ao numero passado como parametro
 struct t2fs_inode leInode(int n){
 	struct t2fs_inode iNode;
 	
 	int pos;
-	carregaBloco(3+((int)n/32));
+	carregaBloco(blocoInodesInicial+((int)n/32));
 	//printf("bloco carregado\n");
 	pos = n*32;
 
@@ -156,10 +148,11 @@ void printInode(struct t2fs_inode iNode){
 
 struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 	struct t2fs_record record;
-	int i;
-	if(diretorioAtualInode.blocksFileSize > 0){
+	int i;			
+	if(diretorioInode.blocksFileSize > 0){
 		carregaBloco(diretorioInode.dataPtr[0]);
-		for(i = 0; i < RECORD_NUMBER; i++) {
+
+		for(i = 0; i < numeroRecords; i++) {
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 			if(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO){
 				printf("TypeVal: %X\n",record.TypeVal);
@@ -170,11 +163,11 @@ struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 			}
 		}
 	}
-	if(diretorioAtualInode.blocksFileSize > 1){
+	if(diretorioInode.blocksFileSize > 1){
 		int i;
 		carregaBloco(diretorioInode.dataPtr[1]);
 		if(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO){
-			for(i = 0; i < RECORD_NUMBER; i++) {
+			for(i = 0; i < numeroRecords; i++) {
 				memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 				printf("TypeVal: %X\n",record.TypeVal);
 				printf("Name: %s\n",record.name);
@@ -190,7 +183,7 @@ struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 
 	}
 }
-
+//usado para achar em algum caminho(absoluto ou relativo) um arquivo regular, retorna o numero do inode do arquivo
 int findFile(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
 	int i;
@@ -205,13 +198,11 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 		nome[i-1] = '\0';
 	}
 	caminhoParcial(nome,partialPath);
-	if(diretorioAtualInode.blocksFileSize > 0){
+	if(diretorioInode.blocksFileSize > 0){
 		carregaBloco(diretorioInode.dataPtr[0]);
-		printf("bloco ptr:%d\n",diretorioInode.dataPtr[0]);
-		for(i = 0; i < RECORD_NUMBER; i++) {
+		for(i = 0; i < numeroRecords; i++) {
 
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
-			printf("%s\n",record.name);
 			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
 				return record.inodeNumber;
 
@@ -221,9 +212,9 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 			}
 		}
 	}
-	if(diretorioAtualInode.blocksFileSize > 1){	
+	if(diretorioInode.blocksFileSize > 1){	
 		carregaBloco(diretorioInode.dataPtr[1]);
-		for(i = 0; i < RECORD_NUMBER; i++) {
+		for(i = 0; i < numeroRecords; i++) {
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
 				return record.inodeNumber;
@@ -238,7 +229,7 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 	}
 	return -1;
 }
-
+//usado para achar em algum caminho(absoluto ou relativo) um arquivo diretorio, retorna o numero do inode do diretorio
 int findDir(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
 	int i;
@@ -256,11 +247,10 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 	}
 	caminhoParcial(nome,partialPath);
 	printf("Nome:%s PartialPath %s \n",nome,partialPath);
-	printf("i\n",record.name);
-	readAndPrintDir(diretorioInode);
-	if(diretorioAtualInode.blocksFileSize > 0){
+	printf("\n",record.name);
+	if(diretorioInode.blocksFileSize > 0){
 		carregaBloco(diretorioInode.dataPtr[0]);
-		for(i = 0; i < RECORD_NUMBER; i++) {
+		for(i = 0; i < numeroRecords; i++) {
 
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 
@@ -270,14 +260,13 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 		
 					return record.inodeNumber;
 				}
-				printf("Inode number %d \n",record.inodeNumber);
 				return findDir(leInode(record.inodeNumber),nome);
 			}
 		}
 	}
-	if(diretorioAtualInode.blocksFileSize > 1){	
+	if(diretorioInode.blocksFileSize > 1){	
 		carregaBloco(diretorioInode.dataPtr[1]);
-		for(i = 0; i < RECORD_NUMBER; i++) {
+		for(i = 0; i < numeroRecords; i++) {
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
 				return findDir(leInode(record.inodeNumber),nome);
@@ -294,28 +283,23 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 /*
 Função que retorna o bloco que encontra-se no endereço passado por parametro.
 Ex:
-	bloco = getBloco(iNode.singleIndPtr);		
+bloco = getBloco(iNode.singleIndPtr);
 */
 char * getBloco(int i){
-	char buffer[256];
-	char * bloco = (char *) malloc (sizeof(char)*1024);
-	int n;
-	n = (i*4);
-	read_sector (n, buffer);
-	memcpy((void*)&bloco[0],            (void*)&buffer[0],256);
-	read_sector (n+1, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*1],(void*)&buffer[0],256);	
-	read_sector (n+2, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*2],(void*)&buffer[0],256);
-	read_sector (n+3, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*3],(void*)&buffer[0],256);
-	return bloco;	
+char buffer[256];
+char * bloco = (char *) malloc (sizeof(char)*1024);
+int n;
+n = (i*4);
+read_sector (n, buffer);
+memcpy((void*)&bloco[0], (void*)&buffer[0],256);
+read_sector (n+1, buffer);
+memcpy((void*)&bloco[SECTOR_SIZE*1],(void*)&buffer[0],256);
+read_sector (n+2, buffer);
+memcpy((void*)&bloco[SECTOR_SIZE*2],(void*)&buffer[0],256);
+read_sector (n+3, buffer);
+memcpy((void*)&bloco[SECTOR_SIZE*3],(void*)&buffer[0],256);
+return bloco;
 }
-
-
-
-
-
 /*
 Função que retorna uma lista do tipo list[iNode.blocksFileSize] contendo
 todos os ponteiros diretos que formam o arquivo.
@@ -381,8 +365,17 @@ DWORD* getListPointer(struct t2fs_inode iNode){
 	
 	
 }
+//faz as inicializacoes da lib, 'e chamada no comeco de todas as funcoes de usuario
+void init(){
+	if (init ==0);
+		carregaSuperBloco();
+		iniciaBloco();
+		diretorioRaizInode  = leInode(0);
+		diretorioAtualInode = leInode(0);
+	initFlag =1;
 
 
+}
 
 
 
@@ -399,8 +392,21 @@ DWORD* getListPointer(struct t2fs_inode iNode){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FILE2 open2 (char *filename){
 
-	
+	init();
+	/*todo lista de handles*/
 	return findFile(diretorioAtualInode,filename);
+}
+DIR2 opendir2 (char *pathname){
+	init();
+	/*todo lista de handles*/
+	return findDir(diretorioAtualInode,pathname);
+
+
+}
+int chdir2(char *pathname){
+	init();
+	diretorioAtualInode = leInode(findDir(diretorioAtualInode,pathname));	
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -408,23 +414,21 @@ FILE2 open2 (char *filename){
 //////////////////////////////////////////////////////////////////MAIN PARA TESTES/////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int main(){
-	char string1 [52]= "aaaaaaaaaa/bbbbbbbbbbbbb)";
-	char string2 [52];
-	char file [] = "/dir1";
-	int a = sizeof(char);
-	int i,j;	
-	struct t2fs_record record;
-	struct t2fs_inode inode;
-	DWORD * listBloc;
-	char * bloco = (char *) malloc (sizeof(char)*1024);
 
+int main(){
+	char file [] = "dir1/../file3";
+
+	int i;
+	init();
+	printInode(leInode(6));
+	printf("%d\n",findFile(diretorioRaizInode,file));
+	printf("\nFIM EXECUCAO\n");
 	
-	iniciaBloco();
-	carregaSuperBloco();
-	//printSuperBloco();
-	
-	
+	return 0;
+}
+
+
+
 	/*
 	for (j = 0; j < 5; j++ ){
 		if (getBitmap2(0,j) == 1){
@@ -439,32 +443,4 @@ int main(){
 		}			
 	}
 	*/
-	inode = leInode(1);
-	listBloc = getListPointer(inode);
-	i = 0;
-	while (listBloc[i] != 0){
-		bloco = getBloco(listBloc[i]);
-		printf("bloco: %c", bloco[0]);
-		i++;
-	}
 	
-	
-
-	
-	
-	
-	
-	
-	//carregaBloco(3);
-	//diretorioRaizInode = leInode(0);
-	
-	//diretorioAtualInode = leInode(1);
-	//printInode(diretorioAtualInode);
-	//diretorioAtualInode = leInode(1);
-	//readAndPrintDir(diretorioRaizInode);
-	//printf("%d\n",findDir(diretorioRaizInode,file));
-	
-
-	printf("FIM EXECUCAO\n");
-	return 0;
-}
