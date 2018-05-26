@@ -452,8 +452,31 @@ void init(){
 		initDirHandleList();
 	}
 }
+//funcao auxiliar que bytes dentro de arquivos apontados por blocos de indices(indiretos);
+void leBytesBloco(int * bytesRestantes, int size, char * buffer,int bloco, int * contador,int byteInicial){
+	int j;
+	carregaBloco(bloco);
+	for(j = 0 ; j < tamanhoBlocoBytes && *contador < size && *contador < *bytesRestantes;*contador++,j++){
+		buffer[*contador] = blocoAtual[j];
+	} 
+}
 
+//funcao auxiliar que le blocos indiretos de arquivos de dados
+void readArquivoIndirecao(int ptrIndirecao ,int blocoInicial,int * bytesRestantes, int size, char * buffer,int * contador,int handle){
+	int k,bytesLidos,byteInicial;
+	struct t2fs_record record;	
+	for(k = 0; k < tamanhoBlocoBytes/sizeof(DWORD) && (*contador < *bytesRestantes) ;k++){
+		carregaBloco(ptrIndirecao);
+		if(blocoInicial == k + 2)
+			byteInicial = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
+		else 
+			byteInicial = 0;
+		 leBytesBloco(&bytesRestantes,size,buffer,(k* sizeof(DWORD)),&contador,byteInicial);
+		
 
+	}
+
+}
 
 
 
@@ -525,37 +548,45 @@ int read2(FILE2 handle, char *buffer, int size){
 	
 	if(fileHandleList[handle].inodeNumber < 0)
 		return -2;
+	
+
+
 	inode =  leInode(fileHandleList[handle].inodeNumber);
 	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr ;
 	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
-	printf("Seek ptr relativo %d\n",blocoInicial);
+
+
+
+
+
 	if(blocoInicial == 0){
 		if(i < tamanhoBlocoBytes)
 			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 		else 
 			j = 0;
+	
+		if(i<bytesRestantes && i <size) 
+			carregaBloco(inode.dataPtr[0]);
+		for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
+			buffer[i] = blocoAtual[j];
+		} 
 	}
-	if(i<bytesRestantes && i < size) 
-		carregaBloco(inode.dataPtr[0]);
-	for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
-		buffer[i] = blocoAtual[j];
-	} 
-
-	if(blocoInicial == 1){
+	if(blocoInicial >= 1){
 		if(i < tamanhoBlocoBytes)
 			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 		else 
 			j = 0;
+	
+		if(i<bytesRestantes && i <size) 
+			carregaBloco(inode.dataPtr[1]);
+		for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
+			buffer[i] = blocoAtual[j];
+		} 
 	}
-	if(i<bytesRestantes && i < size) 
-		carregaBloco(inode.dataPtr[1]);
-	for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
-		buffer[i] = blocoAtual[j];
-	} 
-
-	if (blocoInicial > 1){
+	//leitura bytes indirecao
+	if (bytesRestantes > 0){
 		//read 
-		printf("read2 leitura indirecao");
+		readArquivoIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 	}
 	fileHandleList[handle].seekPtr += i;
 	return i;		
