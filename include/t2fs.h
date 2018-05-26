@@ -63,7 +63,7 @@ typedef struct {
 } DIRENT2;
 typedef struct{
 	int validade;
-	int inode;
+	int inodeNumber;
 	int seekPtr;
 } HANDLE;
 	

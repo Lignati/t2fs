@@ -65,7 +65,7 @@ typedef struct{
 	int validade;
 	int inode;
 	int seekPtr;
-} HANDLE
+} HANDLE;
 	
 
 #pragma pack(pop)

@@ -378,10 +378,11 @@ void initDirHandleList(){
 	int i;
 	for(i =0;i<10;i++){
 
-		fileHandleList[i].validade = NAO_VALIDO;
+		dirHandleList[i].validade = NAO_VALIDO;
 	}
 
 }
+
 //faz as inicializacoes da lib, 'e chamada no comeco de todas as funcoes de usuario
 void init(){
 	if (initFlag == 0){
@@ -421,7 +422,7 @@ FILE2 open2 (char *filename){
 		if(fileHandleList[i].validade == NAO_VALIDO){
 			fileHandleList[i].validade = VALIDO;
 			fileHandleList[i].seekPtr  = 0;
-			fileHandleList[i].inode    = numeroInode;
+			fileHandleList[i].inodeNumber    = numeroInode;
 			return i;
 		}
 		i++;	
@@ -439,7 +440,7 @@ DIR2 opendir2 (char *pathname){
 		if(dirHandleList[i].validade == NAO_VALIDO){
 			dirHandleList[i].validade = VALIDO;
 			dirHandleList[i].seekPtr  = 0;
-			dirHandleList[i].inode    = numeroInode;
+			dirHandleList[i].inodeNumber    = numeroInode;
 			return i;
 		}
 		i++;	
@@ -458,6 +459,49 @@ int chdir2(char *pathname){
 	diretorioAtualInode = leInode(numeroInode);	
 	return 0;
 }
+int read2(FILE2 handle, char *buffer, int size){
+	struct t2fs_inode inode;
+	int bytesRestantes,blocoInicial,i,j;
+	init();
+	i = 0;
+	
+	if(fileHandleList[handle].validade == NAO_VALIDO)
+		return -1;
+	
+	if(fileHandleList[handle].inodeNumber < 0)
+		return -2;
+	inode =  leInode(fileHandleList[handle].inodeNumber);
+	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr ;
+	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
+	printf("Seek ptr relativo %d\n",blocoInicial);
+	if(blocoInicial == 0){
+		if(i < tamanhoBlocoBytes)
+			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
+		else 
+			j = 0;
+		printf("Seek ptr relativo %d\n",j);
+		carregaBloco(inode.dataPtr[0]);
+		for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
+			buffer[i] = blocoAtual[j];
+		} 
+	}
+	if(blocoInicial == 1){
+		if(i < tamanhoBlocoBytes)
+			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
+		else 
+			j = 0;
+		carregaBloco(inode.dataPtr[1]);
+		for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
+			buffer[i] = blocoAtual[j];
+		} 
+	}
+	if (blocoInicial > 1){
+		printf("read2 leitura indirecao");
+	}
+	fileHandleList[handle].seekPtr += i;
+	return i;		
+
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -466,13 +510,22 @@ int chdir2(char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char file [] = "/dir1/dir11";
+	char path [] = "/dir1/dir11/file111";
 
-	int i;
+	int i,size;
+	char buffer [80];
+	int loop;
+	FILE2 file;
 	init();
-	printInode(leInode(0));
-	readAndPrintDir(leInode(0));
-	printf("\n%d\n",opendir2(file));
+	size = 80;
+	file = open2(path);
+	printf("ARQUIVO ABERTO COM HANDLE %d\n",file);
+	
+	loop = read2(file, buffer, size);
+	printf("Tamanho arquivo %d Tamanho Lido %d\n",leInode(6).bytesFileSize,loop);
+	for(i = 0; i<loop;i++)
+		printf("%c",buffer[i]);
+	
 	printf("\nFIM EXECUCAO\n");
 	
 	return 0;
