@@ -188,7 +188,6 @@ struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 	}
 }
 //funcao que percore os rescords dentro de um bloco e acha por nome de arquivo
-
 struct t2fs_record  findRecords(int bloco,char* partialPath){
 	int i;
 	struct t2fs_record recordErro;
@@ -197,7 +196,7 @@ struct t2fs_record  findRecords(int bloco,char* partialPath){
 	carregaBloco(bloco);
 	for(i = 0; i < numeroRecords; i++) {
 		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
-		if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+		if((record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) && strcmp(partialPath,record.name) == 0){
 			return record;
 		}
 	}
@@ -210,11 +209,13 @@ struct t2fs_record  findRecords(int bloco,char* partialPath){
 struct t2fs_record  procuraRecordsIndirecao(int * tamanhoRestante,int blocoIndireto,char * partialPath){
 	int i;
 	struct t2fs_record record;	
-	for(i = 0; i < tamanhoBlocoBytes/INODE_SIZE;i++){
+	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
-		record =  findRecords;
-		if(record >= 0 )
+		record =  findRecords(blocoAtual[i*sizeof(DWORD)],partialPath);
+		if(record.inodeNumber >  INVALID_PTR )
 			return record;
+		
+		*tamanhoRestante -= sizeof(sizeof(DWORD));
 
 	}
 
@@ -224,7 +225,7 @@ struct t2fs_record  procuraRecordsIndirecao(int * tamanhoRestante,int blocoIndir
 //usado para achar em algum caminho(absoluto ou relativo) um arquivo regular, retorna o numero do inode do arquivo
 int findFile(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
-	int i;
+	int i,tamanhoRestante;
 	char partialPath[59];
 	if(nome[0] == '/'){
 		diretorioInode = diretorioRaizInode;
@@ -262,8 +263,17 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 			}
 		}
 	}
+	tamanhoRestante = diretorioInode.bytesFileSize - (2 * tamanhoBlocoBytes); 
 	if(diretorioInode.blocksFileSize > 2){
-		printf("leitura de indirecao)");
+		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+			record = procuraRecordsIndirecao(&tamanhoRestante,diretorioInode.singleIndPtr,partialPath);
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFile(leInode(record.inodeNumber),nome);
+			}
+		}		
 	}
 	return -1;
 }
