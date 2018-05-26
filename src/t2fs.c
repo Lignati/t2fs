@@ -17,6 +17,7 @@ int numeroRecords;
 int initFlag = 0;
 HANDLE fileHandleList[10];
 HANDLE dirHandleList [10];
+
 // funcao recebe duas strigs retrona na segunda o correspondente ao diretorio atual e na primeira o correspondente ao resto do caminho
 void caminhoParcial(char * stringTotal, char * stringParcial){
 	int i,shift;
@@ -100,6 +101,7 @@ void carregaBloco(int i){
 		memcpy((void*)&blocoAtual[SECTOR_SIZE*j],            (void*)&buffer[0],SECTOR_SIZE);
 	}
 }
+
 
 void printSuperBloco(){
 	
@@ -185,6 +187,40 @@ struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 
 	}
 }
+//funcao que percore os rescords dentro de um bloco e acha por nome de arquivo
+
+struct t2fs_record  findRecords(int bloco,char* partialPath){
+	int i;
+	struct t2fs_record recordErro;
+	struct t2fs_record record;
+	recordErro.inodeNumber = INVALID_PTR;
+	carregaBloco(bloco);
+	for(i = 0; i < numeroRecords; i++) {
+		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+		if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+			return record;
+		}
+	}
+	return recordErro;	
+
+		
+
+}
+//funcao utilizada para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
+struct t2fs_record  procuraRecordsIndirecao(int * tamanhoRestante,int blocoIndireto,char * partialPath){
+	int i;
+	struct t2fs_record record;	
+	for(i = 0; i < tamanhoBlocoBytes/INODE_SIZE;i++){
+		carregaBloco(blocoIndireto);
+		record =  findRecords;
+		if(record >= 0 )
+			return record;
+
+	}
+
+
+
+}
 //usado para achar em algum caminho(absoluto ou relativo) um arquivo regular, retorna o numero do inode do arquivo
 int findFile(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
@@ -231,10 +267,11 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 	}
 	return -1;
 }
+
 //usado para achar em algum caminho(absoluto ou relativo) um arquivo diretorio, retorna o numero do inode do diretorio
 int findDir(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
-	int i;
+	int i,tamanhoRestante;
 	char partialPath[59];
 	
 
@@ -275,8 +312,16 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 			}
 		}
 	}
+	tamanhoRestante = diretorioInode.bytesFileSize - (2 * tamanhoBlocoBytes); 
 	if(diretorioInode.blocksFileSize > 2){
-		printf("leitura de indirecao)");
+		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+			record = procuraRecordsIndirecao(&tamanhoRestante,diretorioInode.singleIndPtr,partialPath);
+			if(nome[0] == '\0'){
+		
+				return record.inodeNumber;
+			}
+			return findDir(leInode(record.inodeNumber),nome);
+		}		
 	}
 	return -1;
 }
