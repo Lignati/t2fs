@@ -534,23 +534,27 @@ int read2(FILE2 handle, char *buffer, int size){
 			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 		else 
 			j = 0;
-		printf("Seek ptr relativo %d\n",j);
-		carregaBloco(inode.dataPtr[0]);
-		for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
-			buffer[i] = blocoAtual[j];
-		} 
 	}
+	if(i<bytesRestantes && i < size) 
+		carregaBloco(inode.dataPtr[0]);
+	for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
+		buffer[i] = blocoAtual[j];
+	} 
+
 	if(blocoInicial == 1){
 		if(i < tamanhoBlocoBytes)
 			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 		else 
 			j = 0;
-		carregaBloco(inode.dataPtr[1]);
-		for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
-			buffer[i] = blocoAtual[j];
-		} 
 	}
+	if(i<bytesRestantes && i < size) 
+		carregaBloco(inode.dataPtr[1]);
+	for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
+		buffer[i] = blocoAtual[j];
+	} 
+
 	if (blocoInicial > 1){
+		//read 
 		printf("read2 leitura indirecao");
 	}
 	fileHandleList[handle].seekPtr += i;
