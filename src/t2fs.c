@@ -82,16 +82,16 @@ void carregaSuperBloco(){
 
 
 }
-
+/*
+funcao que inicia no heap(malloc) o veotr que contera o bloco atualmente carregado, deve estar na init(), acessar o bloco pela variavel
+global ablocoAtual
+*/
 void iniciaBloco(){
 	int i;
 	blocoAtual  = (char *) malloc (sizeof(char)*SECTOR_SIZE*tamanhoBloco);
 
 }
-/*
-funcao que inicia no heap(malloc) o veotr que contera o bloco atualmente carregado, deve estar na init(), acessar o bloco pela variavel
-global ablocoAtual
-*/
+/*funcao que abstrai a leitura de setores para blocos*/
 void carregaBloco(int i){
 	char buffer[SECTOR_SIZE];
 	int n,j;
@@ -101,6 +101,19 @@ void carregaBloco(int i){
 		memcpy((void*)&blocoAtual[SECTOR_SIZE*j],            (void*)&buffer[0],SECTOR_SIZE);
 	}
 }
+/*funcao que abstrai a escrita de setores para blocos*/
+void escreveBloco(int i){
+	char buffer[SECTOR_SIZE];
+	int n,j;
+	n = i*tamanhoBloco;
+	for(j = 0; j<tamanhoBloco;j++){
+		
+		memcpy((void*)&buffer[0], (void*)&blocoAtual[SECTOR_SIZE*j],SECTOR_SIZE);
+		write_sector (n+j, buffer);
+	}
+}
+
+
 
 
 void printSuperBloco(){
@@ -478,9 +491,57 @@ void readArquivoIndirecao(int ptrIndirecao ,int blocoInicial,int * bytesRestante
 
 }
 
+//faz o parsing do caminho para craicao de arquivo
+// retorna 0 se o path for o diretorio atual ex. file1
+//retorn 1 se tiver mais coisas antes do nome do rquivo exemplo dir1/file1 ou /dir1/file1
+//retorna 2 se o path for apenas o diretorio raiz
+int createFilePathParser(char * filename,char * tempFileName, char * fileLastName){
+	int i,j,simplePathFlag;
+	i = 0; simplePathFlag = 0;
+
+	while(filename[i] != '\0')
+		i++;
+	
+	while(filename[i] != '/' && i>= 0){
+		
+		i --;
+	}
+	// || !(i = = 0 && filename[i] ==  '\')
+	if( i != -1 && !((i == 0) && (filename[i] == '/'))){	
+		strcpy(tempFileName,filename);
+		tempFileName[i] = '\0';
+		simplePathFlag = 1;
+	}
+	if(((i == 0) && (filename[i] == '/'))){
+		simplePathFlag = 2;
+		
+
+	}
+	i++;
+	j = 0;
+	while(filename[i] != '\0'){
+		fileLastName[j] = filename[i];
+		i++; j++;
+	}
+	fileLastName[j] = '\0';
+	return simplePathFlag;
+}
+
+//acha inode livre a a partir do bitmap, retorna numero do inode
+findInodeLivre(){
+	int valorBit,i;
+	i = -1;
+	do{
+		i++;
+		valorBit = getBitmap2 (BITMAP_INODE,i);
+		printf("%d\n",i);
+	}while(valorBit == 1);
+
+	return i;
 
 
 
+}
 
 
 
@@ -598,6 +659,102 @@ int read2(FILE2 handle, char *buffer, int size){
 
 }
 
+FILE2 create2 (char *filename){
+
+	int numeroInode,indiceInodeBloco,i,j,dirInodeTemp;
+	char tempFileName [59];
+	char dirName[59];
+	char fileLastName[59];
+
+	struct t2fs_inode novoInode,dirInode;
+	//verifica se o nome do arquivo ja existe no disco
+	if(findFile(diretorioAtualInode,filename) >= 0)
+		return -3;
+
+	//to do
+	numeroInode = findInodeLivre();
+	setBitmap2 (BITMAP_INODE, numeroInode,1);
+	
+	novoInode.blocksFileSize = 0;
+	novoInode.bytesFileSize   = 0;	
+	novoInode.dataPtr[0]     = INVALID_PTR;
+	novoInode.dataPtr[1]     = INVALID_PTR;
+	novoInode.singleIndPtr   = INVALID_PTR;
+	novoInode.doubleIndPtr   = INVALID_PTR;
+	//le propositalmente o lixo no local de memoria onde esta no inode para carregar o bloco certo na memoria
+	leInode(numeroInode);
+	indiceInodeBloco = numeroInode % (tamanhoBlocoBytes/INODE_SIZE);
+
+	memcpy((void *)&(novoInode),            (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco]    ,INODE_SIZE);
+	
+	escreveBloco(blocoInodesInicial+((int)numeroInode/32));
+	
+	switch(createFilePathParser(filename,tempFileName,fileLastName)){
+		case 0:
+			dirInode = diretorioAtualInode;
+		break;
+		case 1:
+			dirInodeTemp = findDir(diretorioAtualInode,dirName);
+			if(dirInodeTemp < 0){
+				return -1;
+			}
+			leInode(dirInodeTemp);
+			break;
+		case 2:
+			dirInode = diretorioRaizInode;
+		break;
+
+	}
+	//to do
+	//createDirEntry();
+	//reuturn open2(fileName);
+}
+/*int createDirEntry(int dirInode,char * fileLastName){
+	if(diretorioInode.blocksFileSize > 0){
+		carregaBloco(diretorioInode.dataPtr[0]);
+		for(i = 0; i < numeroRecords; i++) {
+
+			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFile(leInode(record.inodeNumber),nome);
+			}
+		}
+	}
+	if(diretorioInode.blocksFileSize > 1){	
+		carregaBloco(diretorioInode.dataPtr[1]);
+		for(i = 0; i < numeroRecords; i++) {
+			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFile(leInode(record.inodeNumber),nome);
+			}
+		}
+	}
+	tamanhoRestante = diretorioInode.bytesFileSize - (2 * tamanhoBlocoBytes); 
+	if(diretorioInode.blocksFileSize > 2){
+		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+			record = procuraRecordsIndirecao(&tamanhoRestante,diretorioInode.singleIndPtr,partialPath);
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFile(leInode(record.inodeNumber),nome);
+			}
+		}		
+	}	
+
+	
+
+
+}*/
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////MAIN PARA TESTES/////////////////////////////////////////////////////////////
@@ -605,8 +762,7 @@ int read2(FILE2 handle, char *buffer, int size){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char path [] = "/dir1/dir11/file111";
-
+	char path [] = "/file3";
 	int i,size;
 	char buffer [80];
 	int loop;
@@ -616,11 +772,11 @@ int main(){
 	file = open2(path);
 	printf("ARQUIVO ABERTO COM HANDLE %d\n",file);
 	fileHandleList[0].seekPtr = 1;
+	for(i = 0; i<10;i++)
+		printf("Hanlde: %d Validade: %d \n",i,fileHandleList[i].validade);
 	loop = read2(file, buffer, size);
-	printf("Tamanho arquivo %d Tamanho Lido %d\n",leInode(6).bytesFileSize,loop);
-	for(i = 0; i<loop;i++)
-		printf("%c",buffer[i]);
-	
+	printf("Tamanho Lido %d\n",loop);
+
 	printf("\nFIM EXECUCAO\n");
 	
 	return 0;
