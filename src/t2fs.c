@@ -471,7 +471,7 @@ void readArquivoIndirecao(int ptrIndirecao ,int blocoInicial,int * bytesRestante
 			byteInicial = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 		else 
 			byteInicial = 0;
-		 leBytesBloco(&bytesRestantes,size,buffer,(k* sizeof(DWORD)),&contador,byteInicial);
+		 leBytesBloco(bytesRestantes,size,buffer,(k* sizeof(DWORD)),contador,byteInicial);
 		
 
 	}
@@ -554,6 +554,11 @@ int read2(FILE2 handle, char *buffer, int size){
 	inode =  leInode(fileHandleList[handle].inodeNumber);
 	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr ;
 	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
+	//verifica se o arquivo nao 'e vazio
+	if(inode.bytesFileSize == 0){
+
+		return 0;
+	}
 
 
 
