@@ -152,6 +152,7 @@ struct t2fs_inode leInode(int n){
 /*grava o Inode passado por parâmetro na posicao informada
 Retorno 0 --> Sem erro*/
 
+/* Ex: escreveInode(iNode, fileHandleList[handle].inodeNumber);	*/
 int escreveInode(struct t2fs_inode Inode, int posicao){	
 	int InodePorBlocos = ((int)tamanhoBlocoBytes/sizeof(Inode));
 	int nBloco = ((int)posicao/InodePorBlocos);
@@ -535,8 +536,9 @@ findInodeLivre(){
 
 
 }
+
 //acha bloco livre a a partir do bitmap, retorna numero do inode
-findBlocoLivre(){
+int findBlocoLivre(){
 	int valorBit,i;
 	i = -1;
 	do{
@@ -830,10 +832,14 @@ int read2(FILE2 handle, char *buffer, int size){
 
 }
 
-/*retorno -1: handle inválido*/
 /*
+retorno -1: handle inválido
+retorno -2: Inconsistencia de tamanhos
+*/
+/*Não funciona ainda!!!*/
 int write2 (FILE2 handle,char *buffer, int size) {
-	int enderLastBloc;
+	int addrLastBloc, numNewWholeBloc, i, posIniWri, oldSizeData;
+	int sizeTotal = size;
 	struct t2fs_inode iNode;
 	char * bufferAux;
 	char * bloco = (char *) malloc (sizeof(char)*tamanhoBlocoBytes);	
@@ -843,31 +849,56 @@ int write2 (FILE2 handle,char *buffer, int size) {
 		return -1;
 	
 	iNode = leInode(fileHandleList[handle].inodeNumber);
+	oldSizeData = iNode.bytesFileSize;
 	if(iNode.bytesFileSize%tamanhoBlocoBytes != 0){ //ultimo bloco não foi usado por completo.	
-		if(size > bytesFileSize%tamanhoBlocoBytes){ //completo com dados o ultimo bloco e atualizo o buffer com o que falta ser escrito
-			memcpy(bufferAux, buffer,(iNode.bytesFileSize%tamanhoBlocoBytes));	
-			buffer = &buffer[iNode.bytesFileSize%tamanhoBlocoBytes];
+		if(size > (tamanhoBlocoBytes - (iNode.bytesFileSize%tamanhoBlocoBytes))){ //completo com dados o ultimo bloco e atualizo o buffer com o que falta ser escrito
 			
-			int posIniWri = tamanhoBlocoBytes - bytesFileSize%tamanhoBlocoBytes;
-			enderLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
-			carregaBloco(enderLastBloc);
-			memcpy((void*)&blocoAtual[posIniWri],(void*)&bufferAux[0],bytesFileSize%tamanhoBlocoBytes);
-			escreveBloco(enderLastBloc);
+			posIniWri = tamanhoBlocoBytes - iNode.bytesFileSize%tamanhoBlocoBytes;
+			addrLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
+			carregaBloco(addrLastBloc);
+			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],iNode.bytesFileSize%tamanhoBlocoBytes);
+			buffer = &buffer[iNode.bytesFileSize%tamanhoBlocoBytes];
+			escreveBloco(addrLastBloc);
+			size =- iNode.bytesFileSize%tamanhoBlocoBytes;
 		}
 		else{ //se o espaço que há no último bloco é suficiente para ser escrito os dados, não preciso criar mais blocos.
-			int posIniWri = tamanhoBlocoBytes - bytesFileSize%tamanhoBlocoBytes;
-			enderLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
-			carregaBloco(enderLastBloc);
+			posIniWri = tamanhoBlocoBytes - iNode.bytesFileSize%tamanhoBlocoBytes;
+			addrLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
+			carregaBloco(addrLastBloc);
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],size);
-			escreveBloco(enderLastBloc);
+			escreveBloco(addrLastBloc);
+			iNode.bytesFileSize = iNode.bytesFileSize + size;
+			fileHandleList[handle].seekPtr = size;	
 			return size;			
 		}
 	}
+
+	numNewWholeBloc = ((int)size/tamanhoBlocoBytes);
 	
-	crio um novo bloco e escrevo o que falta
+	for (i = 0; i < numNewWholeBloc; i++){	
+		memcpy((void*)&blocoAtual[0],(void*)&buffer[0],tamanhoBlocoBytes);
+		buffer = &buffer[tamanhoBlocoBytes];
+		createDataBlock(fileHandleList[handle].inodeNumber, iNode.blocksFileSize);
+		iNode.bytesFileSize =+ tamanhoBlocoBytes;
+		iNode.blocksFileSize++;
+		size =- tamanhoBlocoBytes;
+	}
+	if(size%tamanhoBlocoBytes == 0){ //ultimo bloco não vai ser completo de dados.
+		memcpy((void*)&blocoAtual[0],(void*)&buffer[0],size);
+		createDataBlock(fileHandleList[handle].inodeNumber, iNode.blocksFileSize);
+		iNode.bytesFileSize =+ size;
+		iNode.blocksFileSize++;		
+	}
 	
+	if (iNode.bytesFileSize - oldSizeData != sizeTotal){
+		printf("Inconsistência de dados\n");
+		return -2;
+	}	
+	fileHandleList[handle].seekPtr = sizeTotal;
+	escreveInode(iNode, fileHandleList[handle].inodeNumber);	
+	return sizeTotal;
 } 
-*/
+
 
 int truncate2 (FILE2 handle) {
 	
@@ -962,7 +993,7 @@ DIR2 opendir2 (char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char path [] = "/file3";
+	//char path [] = "/file3";
 	int i,size;
 	char buffer [80];
 	char buffer2 [80];
@@ -973,12 +1004,29 @@ int main(){
 	init();
 	struct t2fs_inode Inode;
 	
+	/*
+	file = open2(path);
+	Inode = leInode(fileHandleList[0].inodeNumber);	
+	read2(file, buffer, Inode.bytesFileSize);
+	printf("Arquivo lido: %s\n\n", buffer);
+
+	printf("Write -- Erro: %d\n", write2(file, buffer, 5));
+	Inode = leInode(fileHandleList[0].inodeNumber);		
+	fileHandleList[0].seekPtr = 0;
+	
+	read2(file, buffer2, Inode.bytesFileSize);
+	printf("Arquivo lido: %s\n\n", buffer2);	
+	
+	printf("FIM\n");
+	*/
+	
+	
 /*
 	//teste truncate, seek e escreveInode
-	path [] = "/file3";
+	char path [] = "/file3";
 	file = open2(path);
 	printf("ARQUIVO ABERTO COM HANDLE %d\n",file);
-	Inode = leInode(fileHandleList[0].seekPtr);
+	Inode = leInode(fileHandleList[0].inodeNumber);
 		
 	loop = read2(file, buffer, Inode.bytesFileSize);	
 	printf("Tamanho Lido %d\n",loop);
@@ -990,13 +1038,13 @@ int main(){
 	printf("truncate -- qtd erros: %d\n", truncate2(file));
 	
 	fileHandleList[0].seekPtr = 0; //reposiciona no início do arq		
-	Inode = leInode(fileHandleList[0].seekPtr);	
+	Inode = leInode(fileHandleList[0].inodeNumber);	
 	loop = read2(file, buffer2, Inode.bytesFileSize);
 	printf("Tamanho Lido %d\n",loop);	
 	printf("Arquivo lido: %s\n", buffer2);
 	
 	printf("\nFIM EXECUCAO\n");
-*/	
+*/
 
 	
 	
@@ -1024,11 +1072,13 @@ int main(){
 		}			
 	}
 	*/
+	
+	/*
 	createDataBlock(0,2);
 	leInode(0);
 	carregaBloco((leInode(0).singleIndPtr));
 	for(i = 0;i<tamanhoBlocoBytes/sizeof(DWORD);i++)
 		printf("%d -> %d\n",blocoAtual[i],i);
-		
+	*/
 	
 }
