@@ -538,6 +538,70 @@ findInodeLivre(){
 
 
 }
+//acha bloco livre a a partir do bitmap, retorna numero do inode
+findBlocoLivre(){
+	int valorBit,i;
+	i = -1;
+	do{
+		i++;
+		valorBit = getBitmap2 (BITMAP_DADOS,i);
+		printf("%d\n",i);
+	}while(valorBit == 1);
+	printf("retorno bitmap livre %d\n",i);
+
+	return i;
+
+
+
+}
+int createDataBlock(int numeroInode,int numeroInternoBloco){
+	int numeroNovoBloco,i;
+	int indiceInodeBloco;
+	DWORD invalidPtrTemp;
+	invalidPtrTemp = INVALID_PTR;
+	struct t2fs_inode inode;
+
+	numeroNovoBloco = findBlocoLivre();
+	if(numeroNovoBloco < 0)
+		return -1;
+	setBitmap2(BITMAP_DADOS,numeroNovoBloco,1);
+
+
+	inode = leInode(numeroInode);
+	indiceInodeBloco = numeroInode % (tamanhoBlocoBytes/INODE_SIZE);
+	if(numeroInternoBloco == 0)
+		inode.dataPtr[0] = numeroNovoBloco;
+	if(numeroInternoBloco == 1)
+		inode.dataPtr[1] = numeroNovoBloco;
+	//criaBlocoDeIndirecoes e inicia ele com ptrs nulos
+	if(numeroInternoBloco == 2){
+		inode.singleIndPtr = numeroNovoBloco;
+		carregaBloco(numeroInode);
+		for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
+			memcpy((void*) &(blocoAtual[i*sizeof(DWORD)]),(void*)&invalidPtrTemp,sizeof(DWORD));
+			
+
+		}
+		escreveBloco(inode.singleIndPtr);
+		printf("createNewSingleIndirRecord();");
+	}
+
+	//criaBlocoDuplaIndirecao
+	if(numeroInternoBloco == (tamanhoBlocoBytes/sizeof(struct t2fs_record) + 1)){
+		inode.doubleIndPtr = numeroNovoBloco;
+		carregaBloco(numeroInode);
+		printf("todo createNewDoubleIndirRecord();");
+	}
+
+	//recarrega inode na memoria de trabalho	
+	leInode(numeroInode);
+	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode)    ,INODE_SIZE);
+	
+	escreveBloco(blocoInodesInicial+((int)numeroInode/32));
+	
+	
+
+}
 int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode){
 	struct t2fs_inode diretorioInode;
 	struct t2fs_record record;
@@ -550,7 +614,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode){
 		indiceInodeBloco = dirInodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 		memcpy((void *)&(diretorioInode), (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],INODE_SIZE);
 		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/32));
-		createRecordsBlock();
+		createDataBlock(dirInodeNumber,0);
 	}
 	printf("DirInodeNUmber %d\n",dirInodeNumber);
 	if(diretorioInode.blocksFileSize > 0){
@@ -576,8 +640,10 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode){
 		indiceInodeBloco = dirInodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 		memcpy((void *)&(diretorioInode), (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],INODE_SIZE);
 		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/32));
-		createRecordsBlock();
+		createDataBlock(dirInodeNumber,1);
 	}
+	if(diretorioInode.blocksFileSize == 2)
+		createDataBlock(dirInodeNumber,2);
 	if(diretorioInode.blocksFileSize > 1){	
 		carregaBloco(diretorioInode.dataPtr[1]);
 		for(i = 0; i < numeroRecords; i++) {
@@ -631,9 +697,9 @@ FILE2 create2 (char *filename){
 
 	//to do
 	numeroInode = findInodeLivre();
-	printf("antes de marcar no bitmap\n");
+	if(numeroInode > 0)
+		return -7;
 	setBitmap2 (BITMAP_INODE, numeroInode,1);
-	printf("marcou no bitmap\n");
 
 
 	novoInode.blocksFileSize = 0;
@@ -647,7 +713,7 @@ FILE2 create2 (char *filename){
 	leInode(numeroInode);
 	indiceInodeBloco = numeroInode % (tamanhoBlocoBytes/INODE_SIZE);
 
-	memcpy((void *)&(novoInode),            (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco]    ,INODE_SIZE);
+	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(novoInode)   ,INODE_SIZE);
 	
 	escreveBloco(blocoInodesInicial+((int)numeroInode/32));
 	
@@ -679,12 +745,7 @@ FILE2 create2 (char *filename){
 	return open2(filename);
 }
 
-int createRecordsBlock(){
 
-	printf("todo create records block");
-	return -1;
-
-}
 //int delete2 (char *filename){}
 FILE2 open2 (char *filename){
 	int i,numeroInode;
@@ -923,5 +984,11 @@ int main(){
 		}			
 	}
 	*/
+	createDataBlock(0,2);
+	leInode(0);
+	carregaBloco((leInode(0).singleIndPtr));
+	for(i = 0;i<tamanhoBlocoBytes/sizeof(DWORD);i++)
+		printf("%d -> %d\n",blocoAtual[i],i);
+		
 	
 }
