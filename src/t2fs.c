@@ -369,18 +369,15 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 Ex:
 bloco = getBloco(iNode.singleIndPtr); */
 char * getBloco(int i){
-	char buffer[256];
-	char * bloco = (char *) malloc (sizeof(char)*1024);
-	int n;
-	n = (i*4);
-	read_sector (n, buffer);
-	memcpy((void*)&bloco[0], (void*)&buffer[0],256);
-	read_sector (n+1, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*1],(void*)&buffer[0],256);
-	read_sector (n+2, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*2],(void*)&buffer[0],256);
-	read_sector (n+3, buffer);
-	memcpy((void*)&bloco[SECTOR_SIZE*3],(void*)&buffer[0],256);
+	char buffer[SECTOR_SIZE];
+	char * bloco = (char *) malloc (sizeof(char)*tamanhoBlocoBytes);
+	int n,j;
+	n = i*tamanhoBloco;
+	
+	for(j = 0; j<tamanhoBloco;j++){
+		read_sector (n+j, buffer);
+		memcpy((void*)&bloco[SECTOR_SIZE*j],            (void*)&buffer[0],SECTOR_SIZE);
+	}	
 	return bloco;
 }
 
@@ -746,7 +743,12 @@ FILE2 create2 (char *filename){
 }
 
 
-//int delete2 (char *filename){}
+int delete2 (char *filename){
+	
+	
+	
+}
+
 FILE2 open2 (char *filename){
 	int i,numeroInode;
 	numeroInode = findFile(diretorioAtualInode,filename);
@@ -827,7 +829,45 @@ int read2(FILE2 handle, char *buffer, int size){
 	return i;		
 
 }
-//int write2 (FILE2 handle,char *buffer, int size) {}
+
+/*retorno -1: handle inválido*/
+/*
+int write2 (FILE2 handle,char *buffer, int size) {
+	int enderLastBloc;
+	struct t2fs_inode iNode;
+	char * bufferAux;
+	char * bloco = (char *) malloc (sizeof(char)*tamanhoBlocoBytes);	
+	
+	
+	if(fileHandleList[handle].validade == NAO_VALIDO)
+		return -1;
+	
+	iNode = leInode(fileHandleList[handle].inodeNumber);
+	if(iNode.bytesFileSize%tamanhoBlocoBytes != 0){ //ultimo bloco não foi usado por completo.	
+		if(size > bytesFileSize%tamanhoBlocoBytes){ //completo com dados o ultimo bloco e atualizo o buffer com o que falta ser escrito
+			memcpy(bufferAux, buffer,(iNode.bytesFileSize%tamanhoBlocoBytes));	
+			buffer = &buffer[iNode.bytesFileSize%tamanhoBlocoBytes];
+			
+			int posIniWri = tamanhoBlocoBytes - bytesFileSize%tamanhoBlocoBytes;
+			enderLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
+			carregaBloco(enderLastBloc);
+			memcpy((void*)&blocoAtual[posIniWri],(void*)&bufferAux[0],bytesFileSize%tamanhoBlocoBytes);
+			escreveBloco(enderLastBloc);
+		}
+		else{ //se o espaço que há no último bloco é suficiente para ser escrito os dados, não preciso criar mais blocos.
+			int posIniWri = tamanhoBlocoBytes - bytesFileSize%tamanhoBlocoBytes;
+			enderLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
+			carregaBloco(enderLastBloc);
+			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],size);
+			escreveBloco(enderLastBloc);
+			return size;			
+		}
+	}
+	
+	crio um novo bloco e escrevo o que falta
+	
+} 
+*/
 
 int truncate2 (FILE2 handle) {
 	
