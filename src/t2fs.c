@@ -553,6 +553,19 @@ int findBlocoLivre(){
 
 
 }
+//funcao auxiliar que aloca um bloco apontado por um ponteiro indireto
+int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco){
+	int numeroNovoBloco;
+	numeroNovoBloco = findBlocoLivre();
+	if(numeroNovoBloco < 0)
+		return -1;
+	setBitmap2(BITMAP_DADOS,numeroNovoBloco,1);
+	carregaBloco(numeroBlocoInd);	
+	memcpy((void*) &(blocoAtual[(numeroInternoBloco+2)*sizeof(DWORD)]),(void*)&numeroNovoBloco,sizeof(DWORD));
+	return 0;
+
+}
+//funcao que aloca um bloco de dados
 int createDataBlock(int numeroInode,int numeroInternoBloco){
 	int numeroNovoBloco,i;
 	int indiceInodeBloco;
@@ -568,10 +581,12 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 
 	inode = leInode(numeroInode);
 	indiceInodeBloco = numeroInode % (tamanhoBlocoBytes/INODE_SIZE);
-	if(numeroInternoBloco == 0)
+	if(numeroInternoBloco == 0){
 		inode.dataPtr[0] = numeroNovoBloco;
-	if(numeroInternoBloco == 1)
+	}
+	if(numeroInternoBloco == 1){
 		inode.dataPtr[1] = numeroNovoBloco;
+	}
 	//criaBlocoDeIndirecoes e inicia ele com ptrs nulos
 	if(numeroInternoBloco == 2){
 		inode.singleIndPtr = numeroNovoBloco;
@@ -584,7 +599,8 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 		escreveBloco(inode.singleIndPtr);
 		printf("createNewSingleIndirRecord();");
 	}
-
+	if(numeroInternoBloco < numeroInternoBloco == (tamanhoBlocoBytes/sizeof(struct t2fs_record) + 1) && (numeroInternoBloco >=2))
+		createDataBlockSingleInd(inode.singleIndPtr,numeroInternoBloco);
 	//criaBlocoDuplaIndirecao
 	if(numeroInternoBloco == (tamanhoBlocoBytes/sizeof(struct t2fs_record) + 1)){
 		inode.doubleIndPtr = numeroNovoBloco;
@@ -596,7 +612,7 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 	leInode(numeroInode);
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode)    ,INODE_SIZE);
 	
-	escreveBloco(blocoInodesInicial+((int)numeroInode/32));
+	escreveBloco(blocoInodesInicial+(((int)numeroInode/(tamanhoBlocoBytes/32))));
 	
 	
 
@@ -612,7 +628,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode){
 		diretorioInode.blocksFileSize = 1;
 		indiceInodeBloco = dirInodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 		memcpy((void *)&(diretorioInode), (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],INODE_SIZE);
-		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/32));
+		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/(tamanhoBlocoBytes/32)));
 		createDataBlock(dirInodeNumber,0);
 	}
 	printf("DirInodeNUmber %d\n",dirInodeNumber);
@@ -638,7 +654,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode){
 		diretorioInode.blocksFileSize = 2;
 		indiceInodeBloco = dirInodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 		memcpy((void *)&(diretorioInode), (void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],INODE_SIZE);
-		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/32));
+		escreveBloco(blocoInodesInicial+((int)dirInodeNumber/(tamanhoBlocoBytes/32)));
 		createDataBlock(dirInodeNumber,1);
 	}
 	if(diretorioInode.blocksFileSize == 2)
@@ -714,7 +730,7 @@ FILE2 create2 (char *filename){
 
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(novoInode)   ,INODE_SIZE);
 	
-	escreveBloco(blocoInodesInicial+((int)numeroInode/32));
+	escreveBloco(blocoInodesInicial+((int)numeroInode/(tamanhoBlocoBytes/32)));
 	
 	switch(createFilePathParser(filename,dirName,fileLastName)){
 		case 0:
