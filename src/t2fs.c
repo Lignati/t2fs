@@ -897,26 +897,29 @@ int write2 (FILE2 handle,char *buffer, int size) {
 		posIniWri = fileHandleList[handle].seekPtr;
 		while (posIniWri > tamanhoBlocoBytes){
 			printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
-			posIniWri =- tamanhoBlocoBytes;	
+			posIniWri -= tamanhoBlocoBytes;	
 			blocIni++;
 		}		
 	}
 	printf("posIniWri: %d\nblocIni: %d\n", posIniWri, blocIni);
 	
 	while(restSize != 0){
+		printf("while --- restSize %d\n", restSize);
 		if(blocIni < iNode.blocksFileSize){ //escrevo em blocos já existentes
 			printf("bloco existente\n");
 			addrBloc = getBlocoN(iNode, blocIni);
 			carregaBloco(addrBloc);
 		}
-
-		if((restSize + posIniWri) > tamanhoBlocoBytes){			
+		printf("restSize(%d) + posIniWri(%d)) > tamanhoBlocoBytes(%d)\n",restSize,posIniWri, tamanhoBlocoBytes  );
+		if((restSize + posIniWri) > tamanhoBlocoBytes){	
+			printf("yes\n");
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],tamanhoBlocoBytes - posIniWri);
-			restSize = restSize - tamanhoBlocoBytes - posIniWri;
+			restSize = restSize - (tamanhoBlocoBytes - posIniWri);
 			buffer = &buffer[tamanhoBlocoBytes - posIniWri];
 			posIniWri = 0;
 		}
 		else{
+			printf("no\n");
 			printf("ultima Escrita\n");
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],restSize);
 			restSize = 0;
@@ -987,9 +990,7 @@ int seek2 (FILE2 handle,unsigned int offset){
 		return 0;
 	}
 	else{
-		if(iNode.bytesFileSize < (fileHandleList[handle].seekPtr + offset))
-			return -2;
-		fileHandleList[handle].seekPtr = fileHandleList[handle].seekPtr + offset;
+		fileHandleList[handle].seekPtr = offset;
 		return 0;		
 	}	
 }
@@ -1113,9 +1114,9 @@ int main(){
 	char aux1[59];
 	char aux2[59];
 	int i,size;
-	char buffer [80];
-	char buffer3 [80];
-	char buffer2 [] = "Teste de escrita";
+	char buffer [10000];
+	char buffer3 [10000];
+	char buffer2 [] = "_________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________Teste de escrita___________________________________					   ___________________________________________________________________________________________________________________________________________________________________________________________________________________________";
 	char dir[80];
 	char fileS[80];
 	int loop;
@@ -1125,8 +1126,8 @@ int main(){
 	struct t2fs_inode Inode;
 	init();
 
-	
 
+	
 
 	mkdir2(dirPath);
 
@@ -1177,6 +1178,32 @@ int main(){
 		
 	printf("FIM\n");	
 */
+
+	/*
+	//TESTE WRITE multiBlocos
+	FILE2 file;
+	char path [] = "/file3";
+	file = open2(path);
+	Inode = leInode(fileHandleList[0].inodeNumber);	
+	printf("tam: %d\n", Inode.bytesFileSize);
+	read2(file, buffer, Inode.bytesFileSize);
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer[i]);
+	printf("\n");
+	
+	seek2(0,-1);
+	printf("Write -- Erro: %d\n", write2(file, buffer2,500));
+	Inode = leInode(fileHandleList[0].inodeNumber);		
+	fileHandleList[0].seekPtr = 0;
+	read2(file, buffer3, Inode.bytesFileSize);		
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer3[i]);
+	printf("\n");	
+	
+	printf("tam: %d\n", Inode.bytesFileSize);	
+		
+	printf("FIM\n");
+	*/
 	
 /*
 	//teste truncate, seek e escreveInode
