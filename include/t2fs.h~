@@ -13,9 +13,9 @@
 //NEW DEFINES
 #define RECORD_SIZE 64
 //defines usados para as estruturas de handle
-# define NAO_VALIDO 100
-#define  VALIDO 101
-
+#define NAO_VALIDO 100
+#define VALIDO 101
+#define INODE_SIZE 32
 typedef int FILE2;
 typedef int DIR2;
 
