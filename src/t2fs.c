@@ -1159,7 +1159,7 @@ int main(){
 	int i,size;
 	char buffer [10000];
 	char buffer3 [10000];
-	char buffer2 [] = "_________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________Teste de escrita___________________________________					   ___________________________________________________________________________________________________________________________________________________________________________________________________________________________";
+	char buffer2 [] = "----11111-----------------------------------------------------------------------------------------";
 	char dir[80];
 	char fileS[80];
 	int loop;
@@ -1170,6 +1170,9 @@ int main(){
 	init();
 
 
+	
+	
+	
 	
 
 	mkdir2(dirPath);
@@ -1271,6 +1274,43 @@ int main(){
 	printf("Arquivo lido: %s\n", buffer2);
 	
 	printf("\nFIM EXECUCAO\n");
+*/
+
+/*
+//teste truncate2
+	FILE2 file;
+	char path [] = "/file3";
+	file = open2(path);
+	Inode = leInode(fileHandleList[0].inodeNumber);	
+	
+	while(Inode.blocksFileSize < 3){
+		read2(file, buffer, Inode.bytesFileSize);
+		seek2(0,-1);
+		printf("Write -- Erro: %d\n", write2(file, buffer2,80));
+		Inode = leInode(fileHandleList[0].inodeNumber);		
+	}	
+	
+	printf("Número de blocos: %d\nNumero bytes: %d\n", Inode.blocksFileSize, Inode.bytesFileSize);
+	read2(file, buffer3, Inode.bytesFileSize);		
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer3[i]);
+	printf("\n");	
+		
+		
+	printf("ANTES TRUNCATE\nNúmero de blocos: %d\nNumero bytes: %d\n\n", Inode.blocksFileSize, Inode.bytesFileSize);
+	seek2(0, 10);
+	truncate2(0);
+	seek2(0, 0);
+	printf("leitura do arquivo : ");
+	Inode = leInode(fileHandleList[0].inodeNumber);		
+	read2(file, buffer, Inode.bytesFileSize);		
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer[i]);
+	printf("\n");
+	
+	printf("DEPOIS TRUNCATE\nNúmero de blocos: %d\nNumero bytes: %d\n\n", Inode.blocksFileSize, Inode.bytesFileSize);
+	printf("FIM\n");	
+
 */
 
 	
