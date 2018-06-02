@@ -314,4 +314,7 @@ Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 int closedir2 (DIR2 handle);
 
 
+
+/*NOSSAS FUNCOES*/
+int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco);
 #endif

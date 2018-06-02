@@ -316,5 +316,4 @@ int closedir2 (DIR2 handle);
 
 
 /*NOSSAS FUNCOES*/
-int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco);
 #endif
