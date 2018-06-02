@@ -877,67 +877,69 @@ int read2(FILE2 handle, char *buffer, int size){
 retorno -1: handle inválido
 retorno -2: Inconsistencia de tamanhos
 */
-/*Não funciona ainda!!!*/
 int write2 (FILE2 handle,char *buffer, int size) {
-	int addrLastBloc, numNewWholeBloc, i, posIniWri, oldSizeData;
-	int sizeTotal = size;
+	int addrBloc, posIniWri;
+	int blocIni = 0;
+	int restSize = size;
 	struct t2fs_inode iNode;
-	char * bufferAux;
-	char * bloco = (char *) malloc (sizeof(char)*tamanhoBlocoBytes);	
+	
 	init();
 	
 	if(fileHandleList[handle].validade == NAO_VALIDO)
-		return -1;
-	
+		return -1;	
 	iNode = leInode(fileHandleList[handle].inodeNumber);
-	oldSizeData = iNode.bytesFileSize;
-	if(iNode.bytesFileSize%tamanhoBlocoBytes != 0){ //ultimo bloco não foi usado por completo.	
-		if(size > (tamanhoBlocoBytes - (iNode.bytesFileSize%tamanhoBlocoBytes))){ //completo com dados o ultimo bloco e atualizo o buffer com o que falta ser escrito
-			
-			posIniWri = tamanhoBlocoBytes - iNode.bytesFileSize%tamanhoBlocoBytes;
-			addrLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
-			carregaBloco(addrLastBloc);
-			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],iNode.bytesFileSize%tamanhoBlocoBytes);
-			buffer = &buffer[iNode.bytesFileSize%tamanhoBlocoBytes];
-			escreveBloco(addrLastBloc);
-			size =- iNode.bytesFileSize%tamanhoBlocoBytes;
-		}
-		else{ //se o espaço que há no último bloco é suficiente para ser escrito os dados, não preciso criar mais blocos.
-			posIniWri = tamanhoBlocoBytes - iNode.bytesFileSize%tamanhoBlocoBytes;
-			addrLastBloc = getBlocoN(iNode, iNode.blocksFileSize-1);
-			carregaBloco(addrLastBloc);
-			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],size);
-			escreveBloco(addrLastBloc);
-			iNode.bytesFileSize = iNode.bytesFileSize + size;
-			fileHandleList[handle].seekPtr = size;	
-			return size;			
-		}
+	
+	if (fileHandleList[handle].seekPtr >= iNode.blocksFileSize * tamanhoBlocoBytes ){
+		posIniWri = 0;
+		blocIni = iNode.blocksFileSize;
 	}
+	else{
+		posIniWri = fileHandleList[handle].seekPtr;
+		while (posIniWri > tamanhoBlocoBytes){
+			printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
+			posIniWri =- tamanhoBlocoBytes;	
+			blocIni++;
+		}		
+	}
+	printf("posIniWri: %d\nblocIni: %d\n", posIniWri, blocIni);
+	
+	while(restSize != 0){
+		if(blocIni < iNode.blocksFileSize){ //escrevo em blocos já existentes
+			printf("bloco existente\n");
+			addrBloc = getBlocoN(iNode, blocIni);
+			carregaBloco(addrBloc);
+		}
 
-	numNewWholeBloc = ((int)size/tamanhoBlocoBytes);
-	
-	for (i = 0; i < numNewWholeBloc; i++){	
-		memcpy((void*)&blocoAtual[0],(void*)&buffer[0],tamanhoBlocoBytes);
-		buffer = &buffer[tamanhoBlocoBytes];
-		createDataBlock(fileHandleList[handle].inodeNumber, iNode.blocksFileSize);
-		iNode.bytesFileSize =+ tamanhoBlocoBytes;
-		iNode.blocksFileSize++;
-		size =- tamanhoBlocoBytes;
+		if((restSize + posIniWri) > tamanhoBlocoBytes){			
+			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],tamanhoBlocoBytes - posIniWri);
+			restSize = restSize - tamanhoBlocoBytes - posIniWri;
+			buffer = &buffer[tamanhoBlocoBytes - posIniWri];
+			posIniWri = 0;
+		}
+		else{
+			printf("ultima Escrita\n");
+			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],restSize);
+			restSize = 0;
+			posIniWri = 0;
+		}
+				
+		if(blocIni < iNode.blocksFileSize){
+			escreveBloco(addrBloc);
+		}
+		else{
+			createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
+		}	
+		printf("restSize: %d\n", restSize);
+		blocIni++;				
 	}
-	if(size%tamanhoBlocoBytes == 0){ //ultimo bloco não vai ser completo de dados.
-		memcpy((void*)&blocoAtual[0],(void*)&buffer[0],size);
-		createDataBlock(fileHandleList[handle].inodeNumber, iNode.blocksFileSize);
-		iNode.bytesFileSize =+ size;
-		iNode.blocksFileSize++;		
-	}
 	
-	if (iNode.bytesFileSize - oldSizeData != sizeTotal){
-		printf("Inconsistência de dados\n");
-		return -2;
-	}	
-	fileHandleList[handle].seekPtr = sizeTotal;
-	escreveInode(iNode, fileHandleList[handle].inodeNumber);	
-	return sizeTotal;
+	if(blocIni + 1 > iNode.blocksFileSize)
+		iNode.blocksFileSize = blocIni;
+	if(fileHandleList[handle].seekPtr + size > iNode.bytesFileSize )
+		iNode.bytesFileSize = fileHandleList[handle].seekPtr + size;	
+	fileHandleList[handle].seekPtr = fileHandleList[handle].seekPtr + size;
+	escreveInode(iNode, fileHandleList[handle].inodeNumber);
+	return size;
 } 
 
 
@@ -980,8 +982,8 @@ int seek2 (FILE2 handle,unsigned int offset){
 		return -1;
 	
 	iNode = leInode(fileHandleList[handle].inodeNumber);	
-	if(offset == -1){ //posiciona no final do arquivo + 1
-		fileHandleList[handle].seekPtr = iNode.bytesFileSize + 1;
+	if(offset == -1){ //posiciona no final do arquivo
+		fileHandleList[handle].seekPtr = iNode.bytesFileSize;
 		return 0;
 	}
 	else{
@@ -1112,7 +1114,8 @@ int main(){
 	char aux2[59];
 	int i,size;
 	char buffer [80];
-	char buffer2 [80];
+	char buffer3 [80];
+	char buffer2 [] = "Teste de escrita";
 	char dir[80];
 	char fileS[80];
 	int loop;
@@ -1122,6 +1125,7 @@ int main(){
 	struct t2fs_inode Inode;
 	init();
 
+	
 
 
 	mkdir2(dirPath);
@@ -1148,7 +1152,31 @@ int main(){
 	
 	printf("FIM\n");
 	*/
+/*
+	//TESTE WRITE
+	FILE2 file;
+	char path [] = "/file3";
+	file = open2(path);
+	Inode = leInode(fileHandleList[0].inodeNumber);	
+	printf("tam: %d\n", Inode.bytesFileSize);
+	read2(file, buffer, Inode.bytesFileSize);
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer[i]);
+	printf("\n");
 	
+	seek2(0,-1);
+	printf("Write -- Erro: %d\n", write2(file, buffer2,16));
+	Inode = leInode(fileHandleList[0].inodeNumber);		
+	fileHandleList[0].seekPtr = 0;
+	read2(file, buffer3, Inode.bytesFileSize);		
+	for(i = 0; i < Inode.bytesFileSize; i++)
+		printf("%c", buffer3[i]);
+	printf("\n");	
+	
+	printf("tam: %d\n", Inode.bytesFileSize);	
+		
+	printf("FIM\n");	
+*/
 	
 /*
 	//teste truncate, seek e escreveInode
