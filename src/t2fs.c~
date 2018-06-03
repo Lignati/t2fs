@@ -250,6 +250,29 @@ struct t2fs_record  findRecords(int bloco,char* partialPath){
 		
 
 }
+struct t2fs_record  removeRecords(int bloco,char* partialPath,int type){
+	int i;
+	struct t2fs_record recordErro;
+	struct t2fs_record record;
+	recordErro.inodeNumber = INVALID_PTR;
+	carregaBloco(bloco);
+	for(i = 0; i < numeroRecords; i++) {
+		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+		if(record.TypeVal == TYPEVAL_DIRETORIO  && strcmp(partialPath,record.name) == 0){
+			return record;
+		}
+		if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name)){
+			record.TypeVal =  TYPEVAL_INVALIDO;
+			memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
+			escreveBloco(bloco);
+			
+		}
+	}
+	return recordErro;	
+
+		
+
+}
 
 //funcao utilizada para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsIndirecao(int blocoIndireto,char * partialPath){
@@ -264,6 +287,19 @@ struct t2fs_record  procuraRecordsIndirecao(int blocoIndireto,char * partialPath
 
 	}
 }
+//funcao auxiliar usada para remover records
+struct t2fs_record  procuraERemoveRecordsIndirecao(int blocoIndireto,char * partialPath,int type){
+	int i;
+	struct t2fs_record record;	
+	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
+		carregaBloco(blocoIndireto);
+		record =  removeRecords(blocoAtual[i*sizeof(DWORD)],partialPath,type);
+		if(record.inodeNumber >  INVALID_PTR )
+			return record;
+		
+
+	}
+}
 //funcao utilizada para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsDuplaIndirecao(int blocoIndireto,char * partialPath){
 	int i;
@@ -271,6 +307,19 @@ struct t2fs_record  procuraRecordsDuplaIndirecao(int blocoIndireto,char * partia
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
 		record =  procuraRecordsIndirecao(blocoAtual[i*sizeof(DWORD)],partialPath);
+		if(record.inodeNumber >  INVALID_PTR )
+			return record;
+		
+
+	}
+}
+//funcao auxiliar para remover blocos
+struct t2fs_record  procuraERemoveRecordsDuplaIndirecao(int blocoIndireto,char * partialPath, int type){
+	int i;
+	struct t2fs_record record;	
+	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
+		carregaBloco(blocoIndireto);
+		record =  procuraERemoveRecordsIndirecao(blocoAtual[i*sizeof(DWORD)],partialPath,type);
 		if(record.inodeNumber >  INVALID_PTR )
 			return record;
 		
@@ -345,6 +394,83 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 	return -1;
 }
 
+
+
+
+//usado para criar deletar o record referente a um arquivo
+
+int findFileAndRemoveRecord(struct t2fs_inode diretorioInode,char * nome){
+	struct t2fs_record record;
+	int i,tamanhoRestante;
+	char partialPath[59];
+	if(nome[0] == '/'){
+		diretorioInode = diretorioRaizInode;
+		i = 1;
+		while(nome[i] != '\0'){	
+			nome[i-1] = nome[i];
+			i++;	
+		}
+		nome[i-1] = '\0';
+	}
+	caminhoParcial(nome,partialPath);
+	if(diretorioInode.blocksFileSize > 0){
+		carregaBloco(diretorioInode.dataPtr[0]);
+		for(i = 0; i < numeroRecords; i++) {
+
+			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				record.TypeVal = TYPEVAL_INVALIDO;
+				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
+				escreveBloco(diretorioInode.dataPtr[0]);
+				return record.inodeNumber;
+
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFileAndRemoveRecord(leInode(record.inodeNumber),nome);
+			}
+		}
+	}
+	if(diretorioInode.blocksFileSize > 1){	
+		carregaBloco(diretorioInode.dataPtr[1]);
+		for(i = 0; i < numeroRecords; i++) {
+			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				record.TypeVal = TYPEVAL_INVALIDO;
+				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
+				escreveBloco(diretorioInode.dataPtr[1]);
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFileAndRemoveRecord(leInode(record.inodeNumber),nome);
+			}
+		}
+	}
+	tamanhoRestante = diretorioInode.bytesFileSize - (2 * tamanhoBlocoBytes); 
+	if(diretorioInode.blocksFileSize > 2){
+		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+			record = procuraERemoveRecordsIndirecao(diretorioInode.singleIndPtr,partialPath,TYPEVAL_REGULAR);
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFileAndRemoveRecord(leInode(record.inodeNumber),nome);
+			}
+		}		
+	}
+	if(diretorioInode.blocksFileSize > tamanhoBloco+1){
+		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+			record = procuraERemoveRecordsDuplaIndirecao(diretorioInode.singleIndPtr,partialPath,TYPEVAL_REGULAR);
+			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+				return record.inodeNumber;
+			}
+			if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
+				return findFileAndRemoveRecord(leInode(record.inodeNumber),nome);
+			}	
+		}		
+	}
+		
+	return -1;
+}
 //usado para achar em algum caminho(absoluto ou relativo) um arquivo diretorio, retorna o numero do inode do diretorio
 int findDir(struct t2fs_inode diretorioInode,char * nome){
 	struct t2fs_record record;
@@ -545,7 +671,7 @@ void readArquivoDuplaIndirecao(int ptrIndirecao ,int blocoInicial,int * bytesRes
 		if(ptrInicial == (((tamanhoBloco*k) + 2 + tamanhoBloco)/tamanhoBloco)){
 			readArquivoIndirecao(ptrDuplaIndirecao,blocoInicial,bytesRestantes,size,buffer,contador,handle);
 		}
-		else if(ptrInicial > (((tamanhoBloco*k) + 2 + tamanhoBloco)/tamanhoBloco)))
+		else if(ptrInicial > ((tamanhoBloco*k + 2 + tamanhoBloco)/tamanhoBloco))
 			//passa 0 como bloco inicial para saber que ja ocorria leitura antes do bloco anterior
 			readArquivoIndirecao(ptrDuplaIndirecao,0,bytesRestantes,size,buffer,contador,handle);
 		//else do nothing
@@ -900,7 +1026,30 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	printf("to do dupla  indirecao");
 	return -1;
 }
+//funcao utilizada para remover bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
+struct t2fs_record  deletaBlocoSingleIndir(int blocoIndireto){
+	int i,bloco;
+	struct t2fs_record record;	
+	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
+		carregaBloco(blocoIndireto);
+		memcpy((void *)&bloco,(void*)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
+		setBitmap2 (BITMAP_INODE, bloco,0);
 
+	}
+}
+//funcao utilizada para percorrer remover blocos de dupla indirecao
+struct t2fs_record  deletaBlocoDoubleIndir(int blocoIndireto){
+	int i,bloco;
+	struct t2fs_record record;	
+	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
+		carregaBloco(blocoIndireto);
+		memcpy((void *)&bloco,(void*)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
+		deletaBlocoSingleIndir(bloco);
+		setBitmap2 (BITMAP_INODE, bloco,0);
+		
+
+	}
+}
 
 
 
@@ -972,9 +1121,32 @@ FILE2 create2 (char *filename){
 
 
 int delete2 (char *filename){
+	int numeroInode;
+	struct t2fs_inode inode;
+	init();
+	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,filename);
+
+	if(numeroInode < 0)
+		return -1;
+	inode = leInode(numeroInode);
+
+	setBitmap2 (BITMAP_DADOS,inode.dataPtr[0], 0);
+	inode.dataPtr[0] = INVALID_PTR;
+
+	setBitmap2 (BITMAP_DADOS,inode.dataPtr[1], 0);
+	inode.dataPtr[0] = INVALID_PTR;
+
+	deletaBlocoSingleIndir(inode.singleIndPtr);
+	setBitmap2 (BITMAP_DADOS,inode.singleIndPtr, 0);
+	inode.singleIndPtr = INVALID_PTR;
+
+	deletaBlocoDoubleIndir(inode.doubleIndPtr);
+	setBitmap2 (BITMAP_DADOS,inode.doubleIndPtr, 0);
+	inode.doubleIndPtr = INVALID_PTR;		
+	leInode(numeroInode);
+	escreveInode(inode,numeroInode);
 	
-	
-	
+	setBitmap2 (BITMAP_DADOS,numeroInode, 0);
 }
 
 FILE2 open2 (char *filename){
@@ -1002,8 +1174,7 @@ int read2(FILE2 handle, char *buffer, int size){
 	struct t2fs_inode inode;
 	int bytesRestantes,blocoInicial,i,j;
 	init();
-	i = 0;
-	
+	i = 0; 
 	if(fileHandleList[handle].validade == NAO_VALIDO)
 		return -1;
 	
@@ -1144,6 +1315,8 @@ int truncate2 (FILE2 handle) {
 	int qtdBlocOld = iNode.blocksFileSize;
 	int qtdBlocNew;
 	init();
+	if(fileHandleList[handle].validade == NAO_VALIDO)
+		return -1;	
 	if((fileHandleList[handle].seekPtr%tamanhoBlocoBytes) == 0)
 		qtdBlocNew = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
 	else 
@@ -1294,7 +1467,7 @@ DIR2 opendir2 (char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "dirLOKO/299";
+	char filePath    [] = "file3";
 	char novoDirPath [] = "dirLOKO";
 	char dirPath     [] = "/file3";
 	char aux1[59];
@@ -1302,8 +1475,9 @@ int main(){
 	int i,size,dirHandle,fileHandle,dirHandle2;
 	char buffer [10000];
 	char buffer3 [10000];
-	for(i = 0;i<1024*1024*8;i++)
-		printf("%d bytes %d kbytes %d mbytes\n ",i,i/1024,i/(1024*1024));
+	delete2(filePath);
+	printf("%d\n",open2(filePath);
+	readAndPrintDir(leInode(0));
 
 
 	
