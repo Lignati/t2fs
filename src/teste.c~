@@ -47,6 +47,14 @@ int main () {
 	printf("%s\n", path);
 	printf("%s\n", tmp);
 
+	caminhoParcial(path, tmp);
+	printf("%s\n", path);
+	printf("%s\n", tmp);
+
+	caminhoParcial(path, tmp);
+	printf("%s\n", path);
+	printf("%s\n", tmp);
+
 	
 }
 
