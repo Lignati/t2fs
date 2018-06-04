@@ -388,7 +388,7 @@ int findFile(struct t2fs_inode diretorioInode,char * nome){
 			}
 		}		
 	}
-	if(diretorioInode.blocksFileSize > tamanhoBloco+1){
+	if(diretorioInode.blocksFileSize > tamanhoBloco+2){
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
 			record = procuraRecordsDuplaIndirecao(diretorioInode.singleIndPtr,partialPath);
 			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
@@ -467,7 +467,7 @@ int findFileAndRemoveRecord(struct t2fs_inode diretorioInode,char * nome){
 			}
 		}		
 	}
-	if(diretorioInode.blocksFileSize > tamanhoBloco+1){
+	if(diretorioInode.blocksFileSize > tamanhoBloco+2){
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
 			record = procuraERemoveRecordsDuplaIndirecao(diretorioInode.singleIndPtr,partialPath,TYPEVAL_REGULAR);
 			if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
@@ -534,7 +534,7 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 			return findDir(leInode(record.inodeNumber),nome);
 		}		
 	}
-	if(diretorioInode.blocksFileSize > tamanhoBloco+1){
+	if(diretorioInode.blocksFileSize > tamanhoBloco+2){
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
 			record = procuraRecordsDuplaIndirecao(diretorioInode.singleIndPtr,partialPath);
 			if(nome[0] == '\0'){
@@ -1506,7 +1506,77 @@ DIR2 opendir2 (char *pathname){
 
 
 }
-//int readdir2 (DIR2 handle, DIRENT2 *dentry) {}
+int readdir2 (DIR2 handle, DIRENT2 *dentry) {
+	struct t2fs_record record;
+	struct t2fs_inode diretorioInode,recordInode;
+	int i;	
+	init();
+	int numeroInternoRecord;
+	int numeroBlocoRecord;
+	int seekPtrDeslocamento;
+	numeroBlocoRecord = seekPtr/(tamanhoBloco/sizeof(struct t2fs_record);
+	numeroInternoRecords = seekPtr % (tamanhoBloco/sizeof(struct t2fs_record);
+	diretorioInode = leInode(dirHandleList[handle].inodeNumber);		
+	if(numeroBlocoRecord > 0){
+		carregaBloco(diretorioInode.dataPtr[0]);
+			do{
+			numeroInternoRecord ++;
+			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
+			&& numeroInternoRecord < (tamanhoBloco/sizeof(record));
+			
+			if(numeroInternoRecord < tamanhoBloco/sizeof(record)){
+				seekPtr = numeroBlocoRecord * (tamanhoBloco/sizeof(record)) + numeroInternoRecord;
+
+				//monta estrutura de retorno
+				strcpy(dentry->name,record.name);
+
+				recordInode      = leInode(record.inode);
+				dentry->fileSize = recordInode.bytesFileSize;
+				dentry->fileSize = record.TypeVal;
+				
+				return 0;
+			}
+			else{ 
+				numeroInternoRecord = 0;
+				numeroBlocoRecord = 1;
+			}
+			
+	}
+	if(numeroBlocoRecord > 1){
+		carregaBloco(diretorioInode.dataPtr[1]);
+			do{
+			numeroInternoRecord ++;
+			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
+			&& numeroInternoRecord < (tamanhoBloco/sizeof(record));
+			
+			if(numeroInternoRecord < tamanhoBloco/sizeof(record))
+				seekPtr = numeroBlocoRecord * (tamanhoBloco/sizeof(record)) + numeroInternoRecord;
+				//monta estrutura de retorno
+				strcpy(dentry->name,record.name);
+				recordInode      = leInode(record.inode);
+				dentry->fileSize = recordInode.bytesFileSize;
+				dentry->fileSize = record.TypeVal;
+				
+				return 0;
+			else{ 
+				numeroInternoRecord = 0;
+				numeroBlocoRecord = 2;
+			}
+			
+	}
+	if(diretorioInode.blocksFileSize > 2){
+
+		printf("leitura de indirecao\n");
+
+	}
+
+
+
+
+
+}
 
 //int closedir2 (DIR2 handle) {}
 
