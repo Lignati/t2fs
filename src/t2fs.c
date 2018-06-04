@@ -1069,9 +1069,9 @@ struct t2fs_record  deletaBlocoDoubleIndir(int blocoIndireto){
 FILE2 create2 (char *filename){
 
 	int numeroInode,indiceInodeBloco,i,j,dirInodeTemp,dirInodeNumber;
-	char tempFileName [59];
-	char dirName[59];
-	char fileLastName[59];
+	char tempFileName [1024];
+	char dirName[1024];
+	char fileLastName[1024];
 	char thisDir [] = ".";
 	init();
 	strcpy(tempFileName, filename);
@@ -1079,6 +1079,7 @@ FILE2 create2 (char *filename){
 	//verifica se o nome do arquivo ja existe no disco
 	if(findFile(diretorioAtualInode,tempFileName) >= 0)
 		return -3;
+	strcpy(tempFileName, filename);
 	if(findDir(diretorioAtualInode,tempFileName) >= 0)
 		return -3;
 
@@ -1123,7 +1124,9 @@ FILE2 create2 (char *filename){
 	
 	if(createDirEntry(dirInodeNumber, fileLastName, numeroInode,TYPEVAL_REGULAR) < 0)
 		return -5;
-	return open2(filename);
+
+	strcpy(tempFileName, filename);
+	return open2(tempFileName);
 }
 
 
@@ -1131,7 +1134,9 @@ int delete2 (char *filename){
 	int numeroInode;
 	struct t2fs_inode inode;
 	init();
-	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,filename);
+	char pathNameCpy[1024];
+	strcpy(pathNameCpy,filename);
+	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
 	inode = leInode(numeroInode);
@@ -1160,8 +1165,10 @@ int delete2 (char *filename){
 
 FILE2 open2 (char *filename){
 	int i,numeroInode;
+	char pathNameCpy[1024];
 	init();
-	numeroInode = findFile(diretorioAtualInode,filename);
+	strcpy(pathNameCpy,filename);
+	numeroInode = findFile(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
 	i = 0;
@@ -1370,16 +1377,17 @@ int seek2 (FILE2 handle,unsigned int offset){
 int mkdir2 (char *pathname) {
 
 	int numeroInode,indiceInodeBloco,i,j,dirInodeTemp,dirInodeNumber;
-	char tempFileName [59];
-	char dirName[59];
-	char fileLastName[59];
+	char tempFileName [1024];
+	char dirName[1024];
+	char fileLastName[1024];
 	char thisDir [] = ".";
-	init();
+	init();	
 	strcpy(tempFileName, pathname);
 	struct t2fs_inode novoInode;
 	//verifica se o nome do arquivo ja existe no disco
 	if(findDir(diretorioAtualInode,tempFileName) >= 0)
 		return -3;
+	strcpy(tempFileName, pathname);
 	if(findFile(diretorioAtualInode,tempFileName) >= 0)
 		return -3;
 
@@ -1427,7 +1435,8 @@ int mkdir2 (char *pathname) {
 	
 	if(createDirEntry(dirInodeNumber, fileLastName, numeroInode,TYPEVAL_DIRETORIO) < 0)
 		return -5;
-	return opendir2(pathname);
+	strcpy(tempFileName,pathname);
+	return opendir2(tempFileName);
 
 
 }
@@ -1463,8 +1472,11 @@ int getcwd2 (char *pathname, int size) {
 }
 DIR2 opendir2 (char *pathname){
 	int i,numeroInode;
+	char pathNameCpy[1024];
+	strcpy(pathNameCpy,pathname);
 	init();
-	numeroInode = findDir(diretorioAtualInode,pathname);
+	
+	numeroInode = findDir(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
 	i = 0;
@@ -1493,7 +1505,7 @@ DIR2 opendir2 (char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "dir1";
+	char filePath    [] = "dir101";
 	char novoDirPath [] = "dirLOKO";
 	char dirPath     [] = "/file3";
 	char aux1[59];
@@ -1502,9 +1514,10 @@ int main(){
 	char buffer [10000];
 	char buffer3 [10000];
 	struct t2fs_inode inode;
-	opendir2(filePath);
 	puts(filePath);
-	//printf("%d\n");
+	fileHandle = mkdir2(filePath);
+	puts(filePath);
+	printf("%d\n",fileHandle);
 	readAndPrintDir(leInode(0));
 
 
