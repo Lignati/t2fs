@@ -1463,7 +1463,7 @@ int chdir2(char *pathname){
 	if(numeroInode < 0)
 		return -1;
 	diretorioAtualInode = leInode(numeroInode);
-	if(tempPathName[0] = '/'){
+	if(tempPathName[0] == '/'){
 		strcpy(currentPathName,tempPathName);
 	}
 	else{	if(strcmp(currentPathName,"/") != 0)
@@ -1473,7 +1473,7 @@ int chdir2(char *pathname){
 	return 0;
 }
 int getcwd2 (char *pathname, int size) {
-
+	init();
 	if(strlen(currentPathName) > size)
 		return -1;
 	
@@ -1517,7 +1517,7 @@ DIR2 opendir2 (char *pathname){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "dir101";
+	char filePath    [] = "dir1";
 	char novoDirPath [] = "dirLOKO";
 	char dirPath     [] = "/file3";
 	char aux1[59];
@@ -1526,11 +1526,17 @@ int main(){
 	char buffer [10000];
 	char buffer3 [10000];
 	struct t2fs_inode inode;
-	puts(filePath);
-	fileHandle = mkdir2(filePath);
+	getcwd2(aux1,59);
+	chdir2(filePath);
+	getcwd2(aux1,59);
+	puts(aux1);
+
+	//puts(filePath);
+	
+	/*fileHandle = mkdir2(filePath);
 	puts(filePath);
 	printf("%d\n",fileHandle);
-	readAndPrintDir(leInode(0));
+	readAndPrintDir(leInode(0));*/
 
 
 	
