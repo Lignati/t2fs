@@ -9,9 +9,14 @@ unsigned tasks(por favor alguem revisa essa lista pra ver se nao sobrou nada)
 1-closedir2
 2-rmdir2
 4-close 2
-5-getcwd2
 6-readdir
 indentify2 :P
+
+
+TESTAR OSTENSIVAMENTE
+5-getcwd2
+
+
 */
 
 #include <stdio.h>
@@ -1065,7 +1070,14 @@ struct t2fs_record  deletaBlocoDoubleIndir(int blocoIndireto){
 //////////////////////////////////////////////////////////////////FUNCOES DE USUARIO/////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//int identify2 (char *name, int size){}
+int identify2 (char *name, int size){
+	init();
+	name = "Bernardo Neuhaus Lignati - 230159 \nCleiton Souza Lima - 262511\nLucas Augusto - 265038 \n";
+	if (sizeof(name) > size)
+		return -1;
+	else
+		return 0;
+}
 FILE2 create2 (char *filename){
 
 	int numeroInode,indiceInodeBloco,i,j,dirInodeTemp,dirInodeNumber;
