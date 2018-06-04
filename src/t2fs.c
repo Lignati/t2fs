@@ -1279,7 +1279,13 @@ FILE2 open2 (char *filename){
 	}
 	return -2;
 }
-//int close2 (FILE2 handle){}
+int close2 (FILE2 handle){
+	init();
+	
+	fileHandleList[handle].validade = NAO_VALIDO;
+	return 0;
+
+}
 int read2(FILE2 handle, char *buffer, int size){
 	struct t2fs_inode inode;
 	int bytesRestantes,blocoInicial,i,j;
@@ -1716,7 +1722,11 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 
 }
 
-//int closedir2 (DIR2 handle) {}
+int closedir2 (DIR2 handle) {
+	init();
+	dirHandleList[handle].validade = NAO_VALIDO;
+	return 0;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
