@@ -487,7 +487,8 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 	int i,tamanhoRestante;
 	char partialPath[59];
 	
-
+	if(strcmp(nome,"/") == 0)
+		return 0;
 	if(nome[0] == '/'){
 		diretorioInode = diretorioRaizInode;
 		i = 1;
@@ -1513,29 +1514,29 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 	init();
 	int numeroInternoRecord;
 	int numeroBlocoRecord;
-	int seekPtrDeslocamento;
-	numeroBlocoRecord = seekPtr/(tamanhoBloco/sizeof(struct t2fs_record);
-	numeroInternoRecords = seekPtr % (tamanhoBloco/sizeof(struct t2fs_record);
+	numeroBlocoRecord   = dirHandleList[handle].seekPtr   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+	numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 	diretorioInode = leInode(dirHandleList[handle].inodeNumber);		
-	if(numeroBlocoRecord > 0){
+	if(numeroBlocoRecord >= 0){
 		carregaBloco(diretorioInode.dataPtr[0]);
 			do{
-			numeroInternoRecord ++;
+
 			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
-			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
-			&& numeroInternoRecord < (tamanhoBloco/sizeof(record));
+			numeroInternoRecord ++;
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO)
+			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
 			
-			if(numeroInternoRecord < tamanhoBloco/sizeof(record)){
-				seekPtr = numeroBlocoRecord * (tamanhoBloco/sizeof(record)) + numeroInternoRecord;
+			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+				dirHandleList[handle].seekPtr = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 
 				//monta estrutura de retorno
 				strcpy(dentry->name,record.name);
 
-				recordInode      = leInode(record.inode);
+				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
 				dentry->fileSize = record.TypeVal;
 				
-				return;
+				return 0;
 			}
 			else{ 
 				numeroInternoRecord = 0;
@@ -1543,30 +1544,32 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			}
 			
 	}
-	if(numeroBlocoRecord > 1){
+	if(numeroBlocoRecord >= 1){
 		carregaBloco(diretorioInode.dataPtr[1]);
 			do{
-			numeroInternoRecord ++;
 			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
-			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
-			&& numeroInternoRecord < (tamanhoBloco/sizeof(record));
+			numeroInternoRecord ++;
 			
-			if(numeroInternoRecord < tamanhoBloco/sizeof(record))
-				seekPtr = numeroBlocoRecord * (tamanhoBloco/sizeof(record)) + numeroInternoRecord;
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
+			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
+			
+			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+				dirHandleList[handle].seekPtr  = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 				//monta estrutura de retorno
 				strcpy(dentry->name,record.name);
-				recordInode      = leInode(record.inode);
+				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
 				dentry->fileSize = record.TypeVal;
 				
-				return;
+				return 0;
+			}
 			else{ 
 				numeroInternoRecord = 0;
-				numeroBlocoRecord = 1;
+				numeroBlocoRecord = 2;
 			}
 			
 	}
-	if(diretorioInode.blocksFileSize > 2){
+	if(diretorioInode.blocksFileSize >= 2){
 
 		printf("leitura de indirecao\n");
 
@@ -1587,27 +1590,21 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "dir1";
-	char novoDirPath [] = "dirLOKO";
-	char dirPath     [] = "/file3";
+	char filePath    [] = ".";
+	char novoDirPath [] = "/";
+	char dirPath     [] = ".";
 	char aux1[59];
 	char aux2[59];
-	int i,size,dirHandle,fileHandle,dirHandle2;
+	int i,size,handle,fileHandle,dirHandle2;
 	char buffer [10000];
 	char buffer3 [10000];
 	struct t2fs_inode inode;
-	getcwd2(aux1,59);
-	chdir2(filePath);
-	getcwd2(aux1,59);
-	puts(aux1);
-
-	//puts(filePath);
+	DIRENT2 direntry;
+	handle = opendir2(dirPath);
+	while(readdir2(handle,&direntry) == 0)
+		printf("%s\n",direntry.name);
 	
-	/*fileHandle = mkdir2(filePath);
-	puts(filePath);
-	printf("%d\n",fileHandle);
-	readAndPrintDir(leInode(0));*/
-
+	readAndPrintDir(leInode(0));
 
 	
 }
