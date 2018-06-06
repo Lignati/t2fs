@@ -1570,7 +1570,7 @@ int chdir2(char *pathname){
 	char tempPathName[1024];
 	init();
 	strcpy(tempPathName,pathname);
-	numeroInode = findDir(diretorioAtualInode,pathname);
+	numeroInode = findDir(diretorioAtualInode,tempPathName);
 	printf("novo path Inode %d \n",numeroInode);
 	if(numeroInode < 0)
 		return -1;
@@ -1769,9 +1769,10 @@ int main(){
 	char buffer3 [10000];
 	struct t2fs_inode inode;
 	DIRENT2 direntry;
-	handle = open2("file3");
+	chdir2("dir1");
+	//handle = open2("../file3");
 	printf("%d",handle);
-	printf("%d",delete2("fiile3"));
+	//printf("%d",delete2("../file3"));
 	
 	readAndPrintDir(leInode(0));
 
