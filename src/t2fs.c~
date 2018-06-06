@@ -6,11 +6,11 @@ cleiton to do
  write2 -> 
 -----------------------------------------------------------------------
 unsigned tasks(por favor alguem revisa essa lista pra ver se nao sobrou nada)
-1-closedir2
+1-closedir2 -> done
 2-rmdir2
-4-close 2
-6-readdir
-indentify2 :P
+4-close 2 -> done
+6-readdir -> done
+indentify2 :P -> done
 
 
 TESTAR OSTENSIVAMENTE
@@ -240,7 +240,24 @@ struct t2fs_inode readAndPrintDir(struct t2fs_inode diretorioInode){
 
 	}
 }
+int procuraOpen(int numeroInode,int typeVal){
+	int i;
+	if(typeVal == TYPEVAL_DIRETORIO){
+		for(i = 0; i < 10; i ++){
+			if(dirHandleList[i].inodeNumber  == 0 && dirHandleList[i].validade == VALIDO)
+				return -1;
+		}
+        }                               
+	if(typeVal == TYPEVAL_REGULAR){
+		for(i = 0; i < 10; i ++){
+			if(fileHandleList[i].inodeNumber  == 0 && fileHandleList[i].validade == VALIDO)
+				return -1;
+		}
+	}
 
+       return 0;
+
+}
 struct t2fs_record procuraDirEntry(int bloco,int numero){
 	struct t2fs_record record;
 	carregaBloco(bloco);
@@ -1230,7 +1247,14 @@ int delete2 (char *filename){
 	init();
 	char pathNameCpy[1024];
 	strcpy(pathNameCpy,filename);
+	numeroInode = findFile(diretorioAtualInode,pathNameCpy);
+	if(procuraOpen(numeroInode,TYPEVAL_REGULAR) < 0)
+		return -2;
+	strcpy(pathNameCpy,filename);
 	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,pathNameCpy);
+	if(numeroInode < 0)
+		return -1;
+
 	if(numeroInode < 0)
 		return -1;
 	inode = leInode(numeroInode);
@@ -1282,7 +1306,7 @@ FILE2 open2 (char *filename){
 int close2 (FILE2 handle){
 	init();
 	
-	dirHandleList[handle].validade = NAO_VALIDO;
+	fileHandleList[handle].validade = NAO_VALIDO;
 	return 0;
 
 }
@@ -1735,7 +1759,7 @@ int closedir2 (DIR2 handle) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = ".";
+	char filePath    [] = "file3";
 	char novoDirPath [] = "/";
 	char dirPath     [] = "/";
 	char aux1[59];
@@ -1745,9 +1769,9 @@ int main(){
 	char buffer3 [10000];
 	struct t2fs_inode inode;
 	DIRENT2 direntry;
-	handle = opendir2(dirPath);
-	while(readdir2(handle,&direntry) == 0)
-		printf("%s\n",direntry.name);
+	handle = open2("file3");
+	printf("%d",handle);
+	printf("%d",delete2("fiile3"));
 	
 	readAndPrintDir(leInode(0));
 
