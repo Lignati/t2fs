@@ -1189,7 +1189,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	if(diretorioInode.blocksFileSize == (tamanhoBlocoBytes/sizeof(DWORD) + 2)){
 		createDataBlock(dirInodeNumber,(tamanhoBlocoBytes/sizeof(DWORD) + 2));
 		diretorioInode = leInode(dirInodeNumber);
-
+	}
 	if(diretorioInode.blocksFileSize > (tamanhoBlocoBytes/sizeof(DWORD) + 2)){
 		doubleIndirFreeRecord = doubleIndirRecordBlock(dirInodeNumber,diretorioInode.singleIndPtr);
 		carregaBloco(doubleIndirFreeRecord);
@@ -1588,7 +1588,7 @@ int read2(FILE2 handle, char *buffer, int size){
 		readArquivoIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 	}
 	if(bytesRestantes > 0){
-		//readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
+		readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 
 	}
 	fileHandleList[handle].seekPtr += i;
@@ -1875,9 +1875,21 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 }
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
+	int i;
+	
+	HANDLE dummy;
 	inode = leInode(numeroInode);
+	dummy.inodeNumber = numeroInode;
+	dummy.validade = VALIDO;
+	dummy.seekPtr = 0;
+	DIRENT2 dirEntry;
+	i = 0;
 	//o diretorio vazio tera apena as entradas "." e ".."
-	if(inode.bytesFileSize > sizeof(struct t2fs_record)*2)
+	while(readdir2(dummy,&dirEntry != 0){
+		i++
+
+	}
+	if(i > 1)
 		return -1;
 	
 	return 0;

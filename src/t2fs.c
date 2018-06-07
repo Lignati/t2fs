@@ -1588,7 +1588,7 @@ int read2(FILE2 handle, char *buffer, int size){
 		readArquivoIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 	}
 	if(bytesRestantes > 0){
-		//readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
+		readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 
 	}
 	fileHandleList[handle].seekPtr += i;
@@ -1876,9 +1876,12 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
 	inode = leInode(numeroInode);
+	HANDLE dummy;
+	dummy.inodeNumber = numeroInode;
+	dummy.validade = VALIDO;
+	dummy.seekPtr = 0;
+	DIRENT2 dirEntry
 	//o diretorio vazio tera apena as entradas "." e ".."
-	if(inode.bytesFileSize > sizeof(struct t2fs_record)*2)
-		return -1;
 	
 	return 0;
 
