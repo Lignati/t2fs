@@ -1883,7 +1883,6 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 
 
 }
-<<<<<<< HEAD
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
 	inode = leInode(numeroInode);
@@ -1897,8 +1896,6 @@ int diretorioVazio(int numeroInode){
 	return 0;
 
 }
-=======
->>>>>>> 2726881bcd95e3d9011e176d8d8ceeaa39d0e2f1
 int rmdir2 (char *pathname) {
 	char tempPathName[1024];
 	int numeroInode;
@@ -2119,7 +2116,6 @@ int closedir2 (DIR2 handle) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-<<<<<<< HEAD
 	char dir[] = "/AAA";	
 	char dir2[] = "/AAA/BBB";	
 	char dir3[] = "./CCC";	
@@ -2146,25 +2142,7 @@ int main(){
 	}
 	printf("\n");	
 	printf("Diretório Atual debug %s:\n", currentPathName);	
-=======
-	char filePath    [] = "file3";
-	char novoDirPath [] = "/";
-	char dirPath     [] = "/";
-	char aux1[59];
-	char aux2[59];
-	int i,size,handle,fileHandle,dirHandle2;
-	char buffer [10000];
-	char buffer3 [10000];
-	struct t2fs_inode inode;
-	DIRENT2 direntry;
-	//handle = open2("../file3");
-	//printf("%d",handle);
-	printf("%d",mkdir2("oie"));
-	
-	rmdir2("oie");
-	readAndPrintDir(leInode(0));
-	printInode(leInode(0));
->>>>>>> 2726881bcd95e3d9011e176d8d8ceeaa39d0e2f1
+
 
 	printf("FIM TESTES\n");
 	

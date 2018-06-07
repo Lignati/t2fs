@@ -1903,6 +1903,7 @@ int rmdir2 (char *pathname) {
 	char tempPathName[1024];
 	int numeroInode;
 	struct t2fs_inode inode;
+	init();
 	strcpy(tempPathName,pathname);
 	numeroInode = findDir(diretorioAtualInode,tempPathName);
 	if(numeroInode < 0)
@@ -1932,10 +1933,11 @@ int chdir2(char *pathname){
 	if(numeroInode < 0)
 		return -1;
 	diretorioAtualInode = leInode(numeroInode);
-	if(tempPathName[0] == '/'){
+	if(pathname[0] == '/'){
 		strcpy(currentPathName,pathname);
 	}
-	else{	if(strcmp(currentPathName,"/") != 0)
+	else{	
+		if(strcmp(currentPathName,"/") != 0)
 			strcat(currentPathName,"/");
 		strcat(currentPathName,pathname);
 	}
@@ -2132,7 +2134,6 @@ int main(){
 	}
 	printf("\n");	
 	
-<<<<<<< HEAD
 	printf("Diretório Atual debug %s:\n", currentPathName);		
 	
 	printf("Alterando diretório atual(ERRO %d)\n", chdir2(dir));
@@ -2144,11 +2145,7 @@ int main(){
 	}
 	printf("\n");	
 	printf("Diretório Atual debug %s:\n", currentPathName);	
-=======
-	rmdir2("oie");
-	readAndPrintDir(leInode(0));
-	printInode(leInode(0));
->>>>>>> 2726881bcd95e3d9011e176d8d8ceeaa39d0e2f1
+
 
 	printf("FIM TESTES\n");
 	
