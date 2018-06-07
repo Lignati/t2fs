@@ -1821,7 +1821,6 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 			
 			if(record.TypeVal == TYPEVAL_DIRETORIO && record.inodeNumber  == deletadoInodeNumero){
-				printf("ACHEI");
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(diretorioInode.dataPtr[0]);
@@ -1886,7 +1885,7 @@ int diretorioVazio(int numeroInode){
 	dummy.inodeNumber = numeroInode;
 	dummy.validade = VALIDO;
 	dummy.seekPtr = 0;
-	DIRENT2 dirEntry
+	DIRENT2 dirEntry;
 	//o diretorio vazio tera apena as entradas "." e ".."
 	
 	return 0;
@@ -1956,24 +1955,26 @@ int chdir2(char *pathname){
 	if(numeroInode < 0)
 		return -1;
 	diretorioAtualInode = leInode(numeroInode);
-	if(tempPathName[0] == '/'){
-		strcpy(currentPathName,tempPathName);
+	if(pathname[0] == '/'){
+		strcpy(currentPathName,pathname);
 	}
-	else{	if(strcmp(currentPathName,"/") != 0)
+	else{	
+		if(strcmp(currentPathName,"/") != 0)
 			strcat(currentPathName,"/");
-		strcat(currentPathName,tempPathName);
+		strcat(currentPathName,pathname);
 	}
 	return 0;
 }
 int getcwd2 (char *pathname, int size) {
 	init();
+	//printf("%s %d \n ",currentPathName,strlen(currentPathName));
 	if(strlen(currentPathName) > size)
 		return -1;
 	
 	else
 		strcpy(pathname,currentPathName);
 
-	return 1;
+	return 0;
 }
 DIR2 opendir2 (char *pathname){
 	int i,numeroInode;
@@ -2140,24 +2141,34 @@ int closedir2 (DIR2 handle) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "file3";
-	char novoDirPath [] = "/";
-	char dirPath     [] = "/";
-	char aux1[59];
-	char aux2[59];
-	int i,size,handle,fileHandle,dirHandle2;
-	char buffer [10000];
-	char buffer3 [10000];
-	struct t2fs_inode inode;
-	DIRENT2 direntry;
-	//handle = open2("../file3");
-	//printf("%d",handle);
-	//printf("%d",mkdir2("oie"));
+	char dir[] = "/AAA";	
+	char dir2[] = "/AAA/BBB";	
+	char dir3[] = "./CCC";	
+	char  buffer[5];
+	int i;
+	printf("criando um novo diretório (ERRO %d)\n", mkdir2(dir));
 	
-	printf("%d\n",rmdir2("oie"));
-	readAndPrintDir(leInode(1));
-	printInode(leInode(1));
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,5));	
+	for (i = 0; i< 4; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%s", buffer);
+	}
+	printf("\n");	
+	
+	printf("Diretório Atual debug %s:\n", currentPathName);		
+	
+	printf("Alterando diretório atual(ERRO %d)\n", chdir2(dir));
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,7));
+	for (i = 0; i< 5; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%c", buffer[i]);
+	}
+	printf("\n");	
+	printf("Diretório Atual debug %s:\n", currentPathName);	
 
+	printf("FIM TESTES\n");
 	
 
 	

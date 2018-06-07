@@ -1619,46 +1619,51 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	else{
 		posIniWri = fileHandleList[handle].seekPtr;
 		while (posIniWri > tamanhoBlocoBytes){
-			printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
+			//printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
 			posIniWri -= tamanhoBlocoBytes;	
 			blocIni++;
 		}		
 	}
-	printf("posIniWri: %d\nblocIni: %d\n", posIniWri, blocIni);
+	
 	
 	while(restSize != 0){
-		printf("while --- restSize %d\n", restSize);
+			 
 		if(blocIni < iNode.blocksFileSize){ //escrevo em blocos já existentes
-			printf("bloco existente\n");
+			//printf("bloco existente\n");
 			addrBloc = getBlocoN(iNode, blocIni);
 			carregaBloco(addrBloc);
 		}
-		printf("restSize(%d) + posIniWri(%d)) > tamanhoBlocoBytes(%d)\n",restSize,posIniWri, tamanhoBlocoBytes  );
+		//printf("restSize(%d) + posIniWri(%d)) > tamanhoBlocoBytes(%d)\n",restSize,posIniWri, tamanhoBlocoBytes  );
 		if((restSize + posIniWri) > tamanhoBlocoBytes){	
-			printf("yes\n");
+	   
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],tamanhoBlocoBytes - posIniWri);
 			restSize = restSize - (tamanhoBlocoBytes - posIniWri);
 			buffer = &buffer[tamanhoBlocoBytes - posIniWri];
 			posIniWri = 0;
 		}
 		else{
-			printf("no\n");
-			printf("ultima Escrita\n");
+	  
+		 
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],restSize);
 			restSize = 0;
-			posIniWri = 0;
+			posIniWri = 0;				
 		}
 				
 		if(blocIni < iNode.blocksFileSize){
 			escreveBloco(addrBloc);
 		}
 		else{
-			createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
-		}	
-		printf("restSize: %d\n", restSize);
-		blocIni++;				
-	}
+			char *bufferBlocAux = malloc(tamanhoBlocoBytes);		
+			memcpy((void*)&bufferBlocAux[0],(void*)&blocoAtual[0],tamanhoBlocoBytes);		
+			addrBloc = createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
+			memcpy((void*)&blocoAtual[0],(void*)&bufferBlocAux[0],tamanhoBlocoBytes);
+			escreveBloco(addrBloc);		
+		}			
+		  
 	
+	}
+
+	iNode = leInode(fileHandleList[handle].inodeNumber);
 	if(blocIni + 1 > iNode.blocksFileSize)
 		iNode.blocksFileSize = blocIni;
 	if(fileHandleList[handle].seekPtr + size > iNode.bytesFileSize )
@@ -1667,6 +1672,7 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	escreveInode(iNode, fileHandleList[handle].inodeNumber);
 	return size;
 } 
+
 
 
 int truncate2 (FILE2 handle) {
@@ -1815,7 +1821,6 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 			memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 			
 			if(record.TypeVal == TYPEVAL_DIRETORIO && record.inodeNumber  == deletadoInodeNumero){
-				printf("ACHEI");
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(diretorioInode.dataPtr[0]);
@@ -1875,22 +1880,13 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 }
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
-	int i;
-	
-	HANDLE dummy;
 	inode = leInode(numeroInode);
+	HANDLE dummy;
 	dummy.inodeNumber = numeroInode;
 	dummy.validade = VALIDO;
 	dummy.seekPtr = 0;
 	DIRENT2 dirEntry;
-	i = 0;
 	//o diretorio vazio tera apena as entradas "." e ".."
-	while(readdir2(dummy,&dirEntry != 0){
-		i++
-
-	}
-	if(i > 1)
-		return -1;
 	
 	return 0;
 
@@ -1960,23 +1956,24 @@ int chdir2(char *pathname){
 		return -1;
 	diretorioAtualInode = leInode(numeroInode);
 	if(tempPathName[0] == '/'){
-		strcpy(currentPathName,tempPathName);
+		strcpy(currentPathName,pathname);
 	}
 	else{	if(strcmp(currentPathName,"/") != 0)
 			strcat(currentPathName,"/");
-		strcat(currentPathName,tempPathName);
+		strcat(currentPathName,pathname);
 	}
 	return 0;
 }
 int getcwd2 (char *pathname, int size) {
 	init();
+	//printf("%s %d \n ",currentPathName,strlen(currentPathName));
 	if(strlen(currentPathName) > size)
 		return -1;
 	
 	else
 		strcpy(pathname,currentPathName);
 
-	return 1;
+	return 0;
 }
 DIR2 opendir2 (char *pathname){
 	int i,numeroInode;
@@ -2143,24 +2140,34 @@ int closedir2 (DIR2 handle) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	char filePath    [] = "file3";
-	char novoDirPath [] = "/";
-	char dirPath     [] = "/";
-	char aux1[59];
-	char aux2[59];
-	int i,size,handle,fileHandle,dirHandle2;
-	char buffer [10000];
-	char buffer3 [10000];
-	struct t2fs_inode inode;
-	DIRENT2 direntry;
-	//handle = open2("../file3");
-	//printf("%d",handle);
-	//printf("%d",mkdir2("oie"));
+	char dir[] = "/AAA";	
+	char dir2[] = "/AAA/BBB";	
+	char dir3[] = "./CCC";	
+	char  buffer[5];
+	int i;
+	printf("criando um novo diretório (ERRO %d)\n", mkdir2(dir));
 	
-	printf("%d\n",rmdir2("oie"));
-	readAndPrintDir(leInode(1));
-	printInode(leInode(1));
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,5));	
+	for (i = 0; i< 4; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%s", buffer);
+	}
+	printf("\n");	
+	
+	printf("Diretório Atual debug %s:\n", currentPathName);		
+	
+	printf("Alterando diretório atual(ERRO %d)\n", chdir2(dir));
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,7));
+	for (i = 0; i< 5; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%c", buffer[i]);
+	}
+	printf("\n");	
+	printf("Diretório Atual debug %s:\n", currentPathName);	
 
+	printf("FIM TESTES\n");
 	
 
 	
