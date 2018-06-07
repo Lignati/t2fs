@@ -1619,46 +1619,51 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	else{
 		posIniWri = fileHandleList[handle].seekPtr;
 		while (posIniWri > tamanhoBlocoBytes){
-			printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
+			//printf("posIniWri(%d) > tamanhoBlocoBytes(%d)\n", posIniWri,tamanhoBlocoBytes  );
 			posIniWri -= tamanhoBlocoBytes;	
 			blocIni++;
 		}		
 	}
-	printf("posIniWri: %d\nblocIni: %d\n", posIniWri, blocIni);
+	
 	
 	while(restSize != 0){
-		printf("while --- restSize %d\n", restSize);
+			 
 		if(blocIni < iNode.blocksFileSize){ //escrevo em blocos já existentes
-			printf("bloco existente\n");
+			//printf("bloco existente\n");
 			addrBloc = getBlocoN(iNode, blocIni);
 			carregaBloco(addrBloc);
 		}
-		printf("restSize(%d) + posIniWri(%d)) > tamanhoBlocoBytes(%d)\n",restSize,posIniWri, tamanhoBlocoBytes  );
+		//printf("restSize(%d) + posIniWri(%d)) > tamanhoBlocoBytes(%d)\n",restSize,posIniWri, tamanhoBlocoBytes  );
 		if((restSize + posIniWri) > tamanhoBlocoBytes){	
-			printf("yes\n");
+	   
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],tamanhoBlocoBytes - posIniWri);
 			restSize = restSize - (tamanhoBlocoBytes - posIniWri);
 			buffer = &buffer[tamanhoBlocoBytes - posIniWri];
 			posIniWri = 0;
 		}
 		else{
-			printf("no\n");
-			printf("ultima Escrita\n");
+	  
+		 
 			memcpy((void*)&blocoAtual[posIniWri],(void*)&buffer[0],restSize);
 			restSize = 0;
-			posIniWri = 0;
+			posIniWri = 0;				
 		}
 				
 		if(blocIni < iNode.blocksFileSize){
 			escreveBloco(addrBloc);
 		}
 		else{
-			createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
-		}	
-		printf("restSize: %d\n", restSize);
-		blocIni++;				
-	}
+			char *bufferBlocAux = malloc(tamanhoBlocoBytes);		
+			memcpy((void*)&bufferBlocAux[0],(void*)&blocoAtual[0],tamanhoBlocoBytes);		
+			addrBloc = createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
+			memcpy((void*)&blocoAtual[0],(void*)&bufferBlocAux[0],tamanhoBlocoBytes);
+			escreveBloco(addrBloc);		
+		}			
+		  
 	
+	}
+
+	iNode = leInode(fileHandleList[handle].inodeNumber);
 	if(blocIni + 1 > iNode.blocksFileSize)
 		iNode.blocksFileSize = blocIni;
 	if(fileHandleList[handle].seekPtr + size > iNode.bytesFileSize )
@@ -1667,6 +1672,7 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	escreveInode(iNode, fileHandleList[handle].inodeNumber);
 	return size;
 } 
+
 
 
 int truncate2 (FILE2 handle) {
