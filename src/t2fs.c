@@ -1072,7 +1072,7 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 	}
 	if((numeroInternoBloco >= (tamanhoBlocoBytes/sizeof(DWORD) + 2))){
 		inode.blocksFileSize += 1;
-		createDataBlockDoubleIndir(inode.singleIndPtr,numeroInternoBloco,numeroInode);	
+		createDataBlockDoubleIndir(inode.doubleIndPtr,numeroInternoBloco,numeroInode);	
 	}
 	//recarrega inode na memoria de trabalho	
 	leInode(numeroInode);

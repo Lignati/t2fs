@@ -1883,7 +1883,6 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 
 
 }
-<<<<<<< HEAD
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
 	inode = leInode(numeroInode);
@@ -1897,8 +1896,6 @@ int diretorioVazio(int numeroInode){
 	return 0;
 
 }
-=======
->>>>>>> 2726881bcd95e3d9011e176d8d8ceeaa39d0e2f1
 int rmdir2 (char *pathname) {
 	char tempPathName[1024];
 	int numeroInode;
