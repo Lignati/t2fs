@@ -1946,14 +1946,146 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 
 
 }
+int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
+	struct t2fs_record record;
+	struct t2fs_inode diretorioInode,recordInode;
+	int i;	
+	init();
+	int numeroInternoRecord;
+	int numeroBlocoRecord;
+	numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+	numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
+	diretorioInode = leInode(inodeNumber);		
+	if(numeroBlocoRecord >= 0){
+		carregaBloco(diretorioInode.dataPtr[0]);
+			do{
+
+			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
+			numeroInternoRecord ++;
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO)
+			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
+			
+			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+				*seekPointer = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
+
+				//monta estrutura de retorno
+				strcpy(dentry->name,record.name);
+
+				recordInode      = leInode(record.inodeNumber);
+				dentry->fileSize = recordInode.bytesFileSize;
+				dentry->fileType = record.TypeVal;
+				
+				return 0;
+			}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+				return -1;
+
+			}
+			else{ 
+				numeroInternoRecord = 0;
+				numeroBlocoRecord = 1;
+			}
+			
+	}
+	if(numeroBlocoRecord >= 1){
+		carregaBloco(diretorioInode.dataPtr[1]);
+
+			do{
+			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
+			numeroInternoRecord ++;
+			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
+			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
+			
+			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+				*seekPointer  = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
+				//monta estrutura de retorno
+				strcpy(dentry->name,record.name);
+				recordInode      = leInode(record.inodeNumber);
+				dentry->fileSize = recordInode.bytesFileSize;
+				dentry->fileType = record.TypeVal;
+				
+				return 0;
+			
+			}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+				return -1;
+
+			}
+			else{ 
+				numeroInternoRecord = 0;
+				numeroBlocoRecord = 2;
+			}
+			
+	}
+	if(numeroBlocoRecord >= 2){
+		
+		do{
+			record = procuraDirEntryIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
+			*seekPointer ++;
+			numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			
+		}while(record.TypeVal == TYPEVAL_INVALIDO &&
+		*seekPointer * sizeof(struct t2fs_record) < diretorioInode.bytesFileSize&&
+		*seekPointer * sizeof(struct t2fs_record) < tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
+		if(record.TypeVal != TYPEVAL_INVALIDO){
+			//monta estrutura de retorno
+			strcpy(dentry->name,record.name);
+			recordInode      = leInode(record.inodeNumber);
+			dentry->fileSize = recordInode.bytesFileSize;
+			dentry->fileType = record.TypeVal;
+				
+			return 0;
+		
+		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+				return -1;
+
+		}
+	}
+	if(numeroBlocoRecord >(tamanhoBlocoBytes/sizeof(DWORD) + 2)){
+		do{
+			record = procuraDirEntryDuplaIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
+			*seekPointer ++;
+			numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			
+		}while(record.TypeVal == TYPEVAL_INVALIDO &&
+		 *seekPointer * sizeof(struct t2fs_record) < diretorioInode.bytesFileSize&&
+		 *seekPointer * sizeof(struct t2fs_record) < tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
+		if(record.TypeVal != TYPEVAL_INVALIDO){
+			//monta estrutura de retorno
+			strcpy(dentry->name,record.name);
+			recordInode      = leInode(record.inodeNumber);
+			dentry->fileSize = recordInode.bytesFileSize;
+			dentry->fileType = record.TypeVal;
+				
+			return 0;
+		
+		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+				return -1;
+
+		}	
+
+	}
+
+	
+	return -1;
+
+
+
+
+}
 int diretorioVazio(int numeroInode){
 	struct t2fs_inode inode;
+	int i,seekPtr;
 	inode = leInode(numeroInode);
-	HANDLE dummy;
-	dummy.inodeNumber = numeroInode;
-	dummy.validade = VALIDO;
-	dummy.seekPtr = 0;
+	seekPtr = 0;
+	i = 0;
 	DIRENT2 dirEntry;
+	while(readdirAux(numeroInode,&seekPtr,&dirEntry) == 0 ){
+		if(i > 1)
+			return -1;
+		i++;
+		
+	}
 	//o diretorio vazio tera apena as entradas "." e ".."
 	
 	return 0;
@@ -1969,6 +2101,10 @@ int rmdir2 (char *pathname) {
 	if(numeroInode < 0)
 		return -1;
 	inode = leInode(numeroInode);
+	if(diretorioVazio < 0){
+
+		return -1;
+	}
 
 	strcpy(tempPathName,pathname);
 	if(procuraOpen(numeroInode,TYPEVAL_DIRETORIO) < 0)
@@ -2065,7 +2201,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 
 				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
-				dentry->fileSize = record.TypeVal;
+				dentry->fileType = record.TypeVal;
 				
 				return 0;
 			}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
@@ -2093,7 +2229,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 				strcpy(dentry->name,record.name);
 				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
-				dentry->fileSize = record.TypeVal;
+				dentry->fileType = record.TypeVal;
 				
 				return 0;
 			
@@ -2123,7 +2259,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
 			dentry->fileSize = recordInode.bytesFileSize;
-			dentry->fileSize = record.TypeVal;
+			dentry->fileType = record.TypeVal;
 				
 			return 0;
 		
@@ -2147,7 +2283,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
 			dentry->fileSize = recordInode.bytesFileSize;
-			dentry->fileSize = record.TypeVal;
+			dentry->fileType = record.TypeVal;
 				
 			return 0;
 		
@@ -2181,13 +2317,10 @@ int closedir2 (DIR2 handle) {
 int main(){
 	int i;
 	i = 0;
-	while(i<8000){
 	init();
-	createDataBlock(0,i);
-	printf("bloco:%d\n",i);
-	i++;
-
-	}
+	mkdir2("newDir");
+	readAndPrintDir(leInode(0));
+	printf("vazio:%d",diretorioVazio(13));
 	
 }
 
