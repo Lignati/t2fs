@@ -316,4 +316,8 @@ int closedir2 (DIR2 handle);
 
 
 /*NOSSAS FUNCOES*/
+int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int inodeNumber);
+int createDataBlock(int numeroInode,int numeroInternoBloco);
+int  verificaEntradasAbertasIndirecao(int blocoIndireto,char * nome);
+int verificaEntradasAbertas(struct t2fs_inode diretorioInode,char * nome);
 #endif

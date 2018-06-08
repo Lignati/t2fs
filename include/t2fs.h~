@@ -316,4 +316,7 @@ int closedir2 (DIR2 handle);
 
 
 /*NOSSAS FUNCOES*/
+int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int inodeNumber);
+int createDataBlock(int numeroInode,int numeroInternoBloco);
+int  verificaEntradasAbertasIndirecao(int blocoIndireto,char * nome);
 #endif
