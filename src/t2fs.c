@@ -1718,21 +1718,13 @@ int write2 (FILE2 handle,char *buffer, int size) {
 			escreveBloco(addrBloc);
 		}
 		else{
-			char *bufferBlocAux = malloc(tamanhoBlocoBytes);		
-<<<<<<< HEAD
-			memcpy((void*)&bufferBlocAux[0],(void*)&blocoAtual[0],tamanhoBlocoBytes);		
-			addrBloc = createDataBlock(fileHandleList[handle].inodeNumber, blocIni);
-			memcpy((void*)&blocoAtual[0],(void*)&bufferBlocAux[0],tamanhoBlocoBytes);
-			escreveBloco(addrBloc);	
-			free(bufferBlocAux);	
-=======
+			char *bufferBlocAux = malloc(tamanhoBlocoBytes);			
+
 			memcpy((void*)&bufferBlocAux[0],(void*)&blocoAtual[0],tamanhoBlocoBytes);	
 			addrBloc = createDataBlock(fileHandleList[handle].inodeNumber, blocIni);		
 			memcpy((void*)&blocoAtual[0],(void*)&bufferBlocAux[0],tamanhoBlocoBytes);		
 			escreveBloco(addrBloc);	
 			//free(bufferBlocAux);
-	
->>>>>>> 63fbe1d6d63cf9d6402f6d0e651872648aa7ffbc
 		}			
 		  
 	
@@ -2187,171 +2179,15 @@ int closedir2 (DIR2 handle) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-<<<<<<< HEAD
-	struct t2fs_inode iNode;
-	char buffer[256] = "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   MEIO   DO   ARQUIVO    YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYFIM";
-	char bufferRead[256];
-	int i,j;
-	
-	create2 ("ArquivoMuitoGrande");
-	int handleNumber = open2 ("ArquivoMuitoGrande");
-	int maxBlocos = tamanhoBlocoBytes/sizeof(DWORD) * tamanhoBlocoBytes/sizeof(DWORD);
-		
-	printf("Escrevendo o numero maximo de blocos: %d\n", maxBlocos);
-	iNode = leInode(fileHandleList[handleNumber].inodeNumber);	
-	i = 0;
-	
-	while( i < 8000){
-		createDataBlock(0,i);
-		printf("criei o bloco %d\n",i);
-		i++;
-		
-
-
-	}
-
-	
-}
-/*char buffer2 [] = "_________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________Teste de escrita___________________________________					   ___________________________________________________________________________________________________________________________________________________________________________________________________________________________";
-=======
-	char buffer2 [] = "----11111-----------------------------------------------------------------------------------------";
->>>>>>> 29aaf49a0b6826df459b09947984045e494a38b5
-	char dir[80];
-	char fileS[80];
-	int loop;
-	int c;
-	int dirHandle;
-	FILE2 fileHandle;
-	struct t2fs_inode Inode;
-	init();
-
-
-	
-	
-	
-	
-
-	mkdir2(dirPath);
-
-	printf("%d\n",chdir2(novoDirPath));
-	create2(filePath);
-	readAndPrintDir(diretorioAtualInode);*/
-
-	/*
-	file = open2(path);
-	Inode = leInode(fileHandleList[0].inodeNumber);	
-	read2(file, buffer, Inode.bytesFileSize);
-	printf("Arquivo lido: %s\n\n", buffer);
-
-	printf("Write -- Erro: %d\n", write2(file, buffer, 5));
-	Inode = leInode(fileHandleList[0].inodeNumber);		
-	fileHandleList[0].seekPtr = 0;
-	
-	read2(file, buffer2, Inode.bytesFileSize);
-	printf("Arquivo lido: %s\n\n", buffer2);	
-	
-	printf("FIM\n");
-	*/
-/*
-	//TESTE WRITE
-	FILE2 file;
-	char path [] = "/file3";
-	file = open2(path);
-	Inode = leInode(fileHandleList[0].inodeNumber);	
-	printf("tam: %d\n", Inode.bytesFileSize);
-	read2(file, buffer, Inode.bytesFileSize);
-	for(i = 0; i < Inode.bytesFileSize; i++)
-		printf("%c", buffer[i]);
-	printf("\n");
-	
-	seek2(0,-1);
-	printf("Write -- Erro: %d\n", write2(file, buffer2,16));
-	Inode = leInode(fileHandleList[0].inodeNumber);		
-	fileHandleList[0].seekPtr = 0;
-	read2(file, buffer3, Inode.bytesFileSize);		
-	for(i = 0; i < Inode.bytesFileSize; i++)
-		printf("%c", buffer3[i]);
-	printf("\n");	
-	
-	printf("tam: %d\n", Inode.bytesFileSize);	
-		
-	printf("FIM\n");	
-*/
-
-	/*
-	//TESTE WRITE multiBlocos
-	FILE2 file;
-	char path [] = "/file3";
-	file = open2(path);
-	Inode = leInode(fileHandleList[0].inodeNumber);	
-	printf("tam: %d\n", Inode.bytesFileSize);
-	read2(file, buffer, Inode.bytesFileSize);
-	for(i = 0; i < Inode.bytesFileSize; i++)
-		printf("%c", buffer[i]);
-	printf("\n");
-	
-	seek2(0,-1);
-	printf("Write -- Erro: %d\n", write2(file, buffer2,500));
-	Inode = leInode(fileHandleList[0].inodeNumber);		
-	fileHandleList[0].seekPtr = 0;
-	read2(file, buffer3, Inode.bytesFileSize);		
-	for(i = 0; i < Inode.bytesFileSize; i++)
-		printf("%c", buffer3[i]);
-	printf("\n");	
-	
-	printf("tam: %d\n", Inode.bytesFileSize);	
-		
-	printf("FIM\n");
-	*/
-	
-/*
-	//teste truncate, seek e escreveInode
-	char path [] = "/file3";
-	file = open2(path);
-	printf("ARQUIVO ABERTO COM HANDLE %d\n",file);
-	Inode = leInode(fileHandleList[0].inodeNumber);
-		
-	loop = read2(file, buffer, Inode.bytesFileSize);	
-	printf("Tamanho Lido %d\n",loop);
-	printf("Arquivo lido: %s\n", buffer);
-	
-	fileHandleList[0].seekPtr = 0;	
-	seek2 (file,6);
-	printf("Seek realizado na pos %d\n", fileHandleList[0].seekPtr);
-	printf("truncate -- qtd erros: %d\n", truncate2(file));
-	
-	fileHandleList[0].seekPtr = 0; //reposiciona no início do arq		
-	Inode = leInode(fileHandleList[0].inodeNumber);	
-	loop = read2(file, buffer2, Inode.bytesFileSize);
-	printf("Tamanho Lido %d\n",loop);	
-	printf("Arquivo lido: %s\n", buffer2);
-	
-	printf("\nFIM EXECUCAO\n");
-*/
-=======
->>>>>>> 63fbe1d6d63cf9d6402f6d0e651872648aa7ffbc
-
-	struct t2fs_inode iNode;
-	char buffer[256] = "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   MEIO   DO   ARQUIVO    YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYFIM";
-	char bufferRead[256];
 	int i;
-	
-	int handleNumber = create2 ("ArquivoMuitoGrande");
-	int maxBlocos = tamanhoBlocoBytes/sizeof(DWORD) * tamanhoBlocoBytes/sizeof(DWORD);
-		
-	printf("\nEscrevendo...\n");
-	iNode = leInode(fileHandleList[handleNumber].inodeNumber);	
-	
-	while(iNode.blocksFileSize < 2000 ){
-		iNode = leInode(fileHandleList[handleNumber].inodeNumber);				
-		if(iNode.blocksFileSize%100 == 0){
-			printInode(iNode);
-		}
-		write2(handleNumber, buffer,256);
+	i = 0;
+	while(i<8000){
+	init();
+	createDataBlock(0,i);
+	printf("bloco:%d\n",i);
+	i++;
+
 	}
 	
-
-
-	
-	printf("\n\n\nFIM\n\n\n");	
 }
+
