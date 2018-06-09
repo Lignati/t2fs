@@ -1,7 +1,9 @@
+#include <stdio.h>
+#include "../include/t2fs.h"
 int main(){
 	char dir[] = "/AAA";	
-	char dir2[] = "/AAA/BBB";	
-	char dir3[] = "./CCC";	
+	//char dir2[] = "/AAA/BBB";	
+	//char dir3[] = "./CCC";	
 	char  buffer[5];
 	int i;
 	printf("criando um novo diretório (ERRO %d)\n", mkdir2(dir));
@@ -27,6 +29,7 @@ int main(){
 	printf("Diretório Atual debug %s:\n", currentPathName);	
 
 	printf("FIM TESTES\n");
+	return 0;
 	
 	
 }

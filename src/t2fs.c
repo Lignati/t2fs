@@ -218,6 +218,7 @@ void readAndPrintDir(struct t2fs_inode diretorioInode){
 			}
 		}
 	}
+	printf("BLOCO 2\n");
 	if(diretorioInode.blocksFileSize > 1){
 		int i;
 		carregaBloco(diretorioInode.dataPtr[1]);
@@ -1148,11 +1149,12 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 		
 		
 		createDataBlock(dirInodeNumber,0);
-		leInode(dirInodeNumber);
+		diretorioInode = leInode(dirInodeNumber);
 		emptyDir(leInode(dirInodeNumber).dataPtr[0]);
 		diretorioInode = leInode(dirInodeNumber);
 		
 	}
+
 	if(diretorioInode.blocksFileSize > 0){
 		carregaBloco(diretorioInode.dataPtr[0]);
 		for(i = 0; i < numeroRecords; i++) {
@@ -1175,7 +1177,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	}
 	if(diretorioInode.blocksFileSize == 1){
 		createDataBlock(dirInodeNumber,1);
-		leInode(dirInodeNumber);
+		diretorioInode = leInode(dirInodeNumber);
 		emptyDir(leInode(dirInodeNumber).dataPtr[1]);
 		diretorioInode = leInode(dirInodeNumber);
 	}
@@ -1192,6 +1194,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 					record.TypeVal = TYPEVAL_DIRETORIO;
 				record.inodeNumber = numeroInode;
 				strcpy(record.name,fileLastName);
+				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(diretorioInode.dataPtr[1]);
 		
 
@@ -1217,6 +1220,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 					record.TypeVal = TYPEVAL_DIRETORIO;
 				record.inodeNumber = numeroInode;
 				strcpy(record.name,fileLastName);
+				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(singleIndirFreeRecord);
 				return 1;
 			}
@@ -1239,6 +1243,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 					record.TypeVal = TYPEVAL_DIRETORIO;
 				record.inodeNumber = numeroInode;
 				strcpy(record.name,fileLastName);
+				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(doubleIndirFreeRecord);
 				return 1;
 			}
@@ -2292,6 +2297,25 @@ int closedir2 (DIR2 handle) {
 	init();
 	dirHandleList[handle].validade = NAO_VALIDO;
 	return 0;
+}
+
+////////////////////////////MAIN/////////////////////////////////////////
+int main(){
+	int i;
+	char dirPath[]  =  "pathDir0";
+	char dirPai [] = "pai";
+
+	mkdir2(dirPai);
+	chdir2(dirPai);
+	for (i = 0;i<30;i++){
+		dirPath[7] = 49 + i;
+		closedir2(mkdir2(dirPath));
+		printf("%d",i);
+	}
+	readAndPrintDir(leInode(13));
+	printInode(leInode(13));
+	return 0;
+
 }
 
 

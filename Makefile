@@ -18,10 +18,10 @@ SRC_DIR=./src/
 TES_DIR=./testes/
 
 all:
-	gcc -c $(SRC_DIR)t2fs.c -o $(LIB_DIR)t2fs.o 
-	ar crs $(LIB_DIR)libt2fs.a $(LIB_DIR)t2fs.o $(LIB_DIR)apidisk.o  $(LIB_DIR)bitmap2.o
+	gcc -c $(SRC_DIR)t2fs.c -o $(LIB_DIR)libt2fs.o 
+	ar crs $(LIB_DIR)libt2fs.a $(LIB_DIR)libt2fs.o $(LIB_DIR)apidisk.o  $(LIB_DIR)bitmap2.o
 	
 clean:
 	rm -rf $(TES_DIR)*.o
-	rm $(LIB_DIR)t2fs.o
-	rm $(LIB_DIR)t2fs.a
+	rm $(LIB_DIR)libt2fs.o
+	rm $(LIB_DIR)libt2fs.a
