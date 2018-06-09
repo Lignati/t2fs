@@ -654,7 +654,6 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 	}
 	if(diretorioInode.blocksFileSize > 2){
 		record = procuraRecordsIndirecao(diretorioInode.singleIndPtr,partialPath);
-		printf("%s\n",record.name);
 		if(record.inodeNumber < 0)
 				return -1;
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
@@ -1152,7 +1151,6 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 	//sobreescreve inode
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode)    ,INODE_SIZE);
 	escreveBloco(blocoInodesInicial+(((int)numeroInode/(tamanhoBlocoBytes/32))));
-	printInode(inode);	
 	return numeroNovoBloco;
 	
 
@@ -2036,8 +2034,8 @@ int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
 			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		*seekPointer * sizeof(struct t2fs_record) < diretorioInode.bytesFileSize&&
-		*seekPointer * sizeof(struct t2fs_record) < tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
+		*seekPointer * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		*seekPointer * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
 		if(record.TypeVal != TYPEVAL_INVALIDO){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
@@ -2047,7 +2045,7 @@ int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
 				
 			return 0;
 		
-		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+		}else if(numeroInternoRecord > tamanhoBlocoBytes/sizeof(record)){
 				return -1;
 
 		}
@@ -2356,9 +2354,9 @@ int main(){
 	if(handle < 0)
 		handle = opendir2(dirPai);
 	chdir2(dirPai);
-	for(k = 0; k<2; k++){
+	/*for(k = 0; k<10; k++){
+		
 		for(j = 0; j <10; j++){
-
 			for( i = 0; i < 10; i++){
 
 				unidade ++;
@@ -2367,7 +2365,8 @@ int main(){
 				dirPath[7] = centena;
 				dirPath[8] = dezena;
 				dirPath[9] = unidade;
-				printf("creating %s\n",dirPath,closedir2(mkdir2(dirPath)));
+				printf("%s\n",dirPath);
+				closedir2(mkdir2(dirPath));
 				
 
 		
@@ -2380,7 +2379,7 @@ int main(){
 	centena ++;
 	unidade = 47;
 	dezena  = 48;
-	}
+	}*/
 		i=0;
 	while(readdir2(handle, &dirEntry) == 0){
 		printf("%d -> %s\n",i,dirEntry.name);
