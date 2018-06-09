@@ -1011,21 +1011,21 @@ int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int in
 //retorna numero do bloco com records em branco para serem usados
 int singleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 	int blocoNovoRecord;
-	int i;
+	int i,	ptrAtual;
 	struct t2fs_inode inode;
-	carregaBloco(blocoIndireto);
+	
 	inode = leInode(inodeNumber);
-
+	carregaBloco(blocoIndireto);
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
-			
-			if(blocoAtual[i*sizeof(DWORD)] != INVALID_PTR)
-				memcpy((void*)&blocoNovoRecord,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(struct t2fs_record));	
+	memcpy((void*)&ptrAtual,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));			
+			if(ptrAtual != INVALID_PTR)
+				memcpy((void*)&blocoNovoRecord,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));	
 				blocoNovoRecord = findDirEntryInd(blocoNovoRecord) ;
 				if(blocoNovoRecord > 0)
 					return blocoNovoRecord;
-			if(blocoAtual[i*sizeof(DWORD)] == INVALID_PTR){
-				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);			
-				
+			if(ptrAtual == INVALID_PTR){
+				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);
+				//printf("CRIANDO BLOCO INDIRETOOOOO");			
 				emptyDir(blocoNovoRecord);
 				inode.blocksFileSize += 1;
 				escreveInode(inode,inodeNumber);
@@ -1205,9 +1205,10 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	}
 	if(diretorioInode.blocksFileSize == 2)
 		createDataBlock(dirInodeNumber,2);
-		diretorioInode = leInode(dirInodeNumber);
-
+	diretorioInode = leInode(dirInodeNumber);
+	
 	if(diretorioInode.blocksFileSize > 2){
+		printf("\nACHO QUE ESTE 'E O PTR %d ",diretorioInode.singleIndPtr);
 		singleIndirFreeRecord = singleIndirRecordBlock(dirInodeNumber,diretorioInode.singleIndPtr);
 		carregaBloco(singleIndirFreeRecord);
 		for(i = 0; i < numeroRecords; i++) {
@@ -2175,16 +2176,16 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 	numeroBlocoRecord   = dirHandleList[handle].seekPtr   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
 	numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 	diretorioInode = leInode(dirHandleList[handle].inodeNumber);		
-	if(numeroBlocoRecord >= 0){
-		carregaBloco(diretorioInode.dataPtr[0]);
+	if(numeroBlocoRecord == 0){
+		carregaBloco(diretorioInode.dataPtr[0]);	
 			do{
-
+			
 			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
 			numeroInternoRecord ++;
 			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO)
-			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
-			
-			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+			&& numeroInternoRecord <=(tamanhoBlocoBytes/sizeof(record)));
+			printf("numeroInterno record  %d ->",numeroInternoRecord);
+			if(numeroInternoRecord <= tamanhoBlocoBytes/sizeof(record)){
 				dirHandleList[handle].seekPtr = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 
 				//monta estrutura de retorno
@@ -2195,7 +2196,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 				dentry->fileType = record.TypeVal;
 				
 				return 0;
-			}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+			}else if(numeroInternoRecord > tamanhoBlocoBytes/sizeof(record)){
 				return -1;
 
 			}
@@ -2205,16 +2206,16 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			}
 			
 	}
-	if(numeroBlocoRecord >= 1){
+	if(numeroBlocoRecord == 1){
 		carregaBloco(diretorioInode.dataPtr[1]);
 
 			do{
 			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
 			numeroInternoRecord ++;
 			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
-			&& numeroInternoRecord < (tamanhoBlocoBytes/sizeof(record)));
-			
-			if(numeroInternoRecord < tamanhoBlocoBytes/sizeof(record)){
+			&& numeroInternoRecord <= (tamanhoBlocoBytes/sizeof(record)));
+			printf("numeroInterno record  %d ->",numeroInternoRecord);
+			if(numeroInternoRecord <= tamanhoBlocoBytes/sizeof(record)){
 				dirHandleList[handle].seekPtr  = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 				//monta estrutura de retorno
 				strcpy(dentry->name,record.name);
@@ -2304,15 +2305,25 @@ int main(){
 	int i;
 	char dirPath[]  =  "pathDir0";
 	char dirPai [] = "pai";
-
-	mkdir2(dirPai);
+	DIR2 handle;
+	DIRENT2 dirEntry;
+	handle = open2(dirPai);
+	if(handle < -1)
+		handle = open2(dirPai);
 	chdir2(dirPai);
-	for (i = 0;i<30;i++){
-		dirPath[7] = 49 + i;
+	for (i = 0;i<40;i++){
+		dirPath[7] = 48 + i;
 		closedir2(mkdir2(dirPath));
 		printf("%d",i);
 	}
-	readAndPrintDir(leInode(13));
+	printf("\n");
+	i = 1;
+	while(readdir2(handle,&dirEntry) == 0 ){
+		printf("%d %s\n",i,dirEntry.name);
+		i++;
+		
+	}
+	printf("%s\n",dirEntry.name);
 	printInode(leInode(13));
 	return 0;
 
