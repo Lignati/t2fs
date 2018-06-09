@@ -2317,7 +2317,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			refreshCurrentPath();	
 			return 0;
 		
-		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+		}else if(numeroInternoRecord > tamanhoBlocoBytes/sizeof(record)){
 				return -1;
 
 		}	

@@ -2382,7 +2382,7 @@ int main(){
 	}*/
 		i=0;
 	while(readdir2(handle, &dirEntry) == 0){
-		//printf("%d -> %s\n",i,dirEntry.name);
+		printf("%d -> %s\n",i,dirEntry.name);
 		i++;
 		
 	}
