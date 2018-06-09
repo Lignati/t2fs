@@ -271,7 +271,7 @@ struct t2fs_record  procuraDirEntryIndirecao(int blocoIndireto,int numeroInterno
 	bloco = 0;
 	struct t2fs_record record;	
 	carregaBloco(blocoIndireto);
-	memcpy((void*)&bloco,(void *)&blocoAtual[numeroExterno*sizeof(DWORD)],sizeof(DWORD));
+	memcpy((void*)&bloco,(void *)&(blocoAtual[numeroExterno*sizeof(DWORD)]),sizeof(DWORD));
 	record =  procuraDirEntry(bloco,numeroInterno);
 	return record;
 }
@@ -289,11 +289,12 @@ struct t2fs_record  findRecords(int bloco,char* partialPath){
 	int i;
 	struct t2fs_record recordErro;
 	struct t2fs_record record;
-	recordErro.inodeNumber = INVALID_PTR;
+	recordErro.inodeNumber = -1;
 	carregaBloco(bloco);
 	for(i = 0; i < numeroRecords; i++) {
-		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+		memcpy((void*)&record,(void *)&blocoAtual[i*sizeof(struct t2fs_record)],sizeof(struct t2fs_record));
 		if((record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) && strcmp(partialPath,record.name) == 0){
+			
 			return record;
 		}
 	}
@@ -313,6 +314,7 @@ struct t2fs_record  findRecords2(int bloco,int deletadoNumero,int * blocoRecord)
 		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 		if((record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) && record.inodeNumber == deletadoNumero){
 			*blocoRecord = bloco;
+			
 			return record;
 		}
 	}
@@ -326,7 +328,7 @@ struct t2fs_record  removeRecords(int bloco,char* partialPath,int type){
 	int i;
 	struct t2fs_record recordErro;
 	struct t2fs_record record;
-	recordErro.inodeNumber = INVALID_PTR;
+	recordErro.inodeNumber = -1;
 	carregaBloco(bloco);
 	for(i = 0; i < numeroRecords; i++) {
 		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
@@ -348,16 +350,20 @@ struct t2fs_record  removeRecords(int bloco,char* partialPath,int type){
 
 //funcao utilizada para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsIndirecao(int blocoIndireto,char * partialPath){
-	int i,bloco;
+	int bloco,i;
+	int temp;
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
 		memcpy((void*)&bloco,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
-		if(bloco == INVALID_PTR)
+		if(bloco == INVALID_PTR){
 			break;
+		}
 		record =  findRecords(bloco,partialPath);
-		if(record.inodeNumber >  INVALID_PTR )
+		temp = record.inodeNumber;
+		if(temp >= 0 ){
 			return record;
+		}
 		
 		
 
@@ -366,7 +372,7 @@ struct t2fs_record  procuraRecordsIndirecao(int blocoIndireto,char * partialPath
 }
 //funcao utilizada pel rmdir2 para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsIndirecao2(int blocoIndireto,int deletadoNumero,int * blocoRecord){
-	int i,bloco;
+	int i,bloco,temp;
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
@@ -374,7 +380,8 @@ struct t2fs_record  procuraRecordsIndirecao2(int blocoIndireto,int deletadoNumer
 		if(bloco == INVALID_PTR)
 			break;
 		record =  findRecords2(bloco,deletadoNumero,blocoRecord);
-		if(record.inodeNumber >  INVALID_PTR )
+		temp = record.inodeNumber;
+		if(temp >= 0 )
 			return record;
 		
 		
@@ -392,7 +399,7 @@ struct t2fs_record  procuraERemoveRecordsIndirecao(int blocoIndireto,char * part
 		if(bloco == INVALID_PTR)
 			break;
 		record =  removeRecords(bloco,partialPath,type);
-		if(record.inodeNumber >  INVALID_PTR )
+		if(record.inodeNumber >=  0 )
 			return record;
 		
 
@@ -401,7 +408,7 @@ struct t2fs_record  procuraERemoveRecordsIndirecao(int blocoIndireto,char * part
 }
 //funcao utilizada para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsDuplaIndirecao(int blocoIndireto,char * partialPath){
-	int i,bloco;
+	int i,bloco,temp;
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
@@ -409,7 +416,8 @@ struct t2fs_record  procuraRecordsDuplaIndirecao(int blocoIndireto,char * partia
 		if(bloco == INVALID_PTR)
 			break;
 		record =  procuraRecordsIndirecao(bloco,partialPath);
-		if(record.inodeNumber >  INVALID_PTR )
+		temp = record.inodeNumber;
+		if(temp >= 0 )
 			return record;
 		
 
@@ -426,7 +434,7 @@ struct t2fs_record  procuraRecordsDuplaIndirecao2(int blocoIndireto,int deletado
 		if(bloco == INVALID_PTR)
 			break;
 		record =  procuraRecordsIndirecao2(bloco,deletadoNumero,blocoRecord);
-		if(record.inodeNumber >  INVALID_PTR )
+		if(record.inodeNumber >=  0)
 			return record;
 		
 
@@ -436,6 +444,7 @@ struct t2fs_record  procuraRecordsDuplaIndirecao2(int blocoIndireto,int deletado
 //funcao auxiliar para remover blocos
 struct t2fs_record  procuraERemoveRecordsDuplaIndirecao(int blocoIndireto,char * partialPath, int type){
 	int i,bloco;
+	int temp;
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
@@ -443,7 +452,8 @@ struct t2fs_record  procuraERemoveRecordsDuplaIndirecao(int blocoIndireto,char *
 		if(bloco == INVALID_PTR)
 			break;
 		record =  procuraERemoveRecordsIndirecao(bloco,partialPath,type);
-		if(record.inodeNumber >  INVALID_PTR )
+		temp = record.inodeNumber;
+		if(temp >= 0 )
 			return record;
 		
 
@@ -644,6 +654,7 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 	}
 	if(diretorioInode.blocksFileSize > 2){
 		record = procuraRecordsIndirecao(diretorioInode.singleIndPtr,partialPath);
+		printf("%s\n",record.name);
 		if(record.inodeNumber < 0)
 				return -1;
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
@@ -658,13 +669,14 @@ int findDir(struct t2fs_inode diretorioInode,char * nome){
 	}
 	if(diretorioInode.blocksFileSize > tamanhoBloco+2){
 		record = procuraRecordsDuplaIndirecao(diretorioInode.singleIndPtr,partialPath);
+		
 		if(record.inodeNumber < 0)
 			return -1;
 		if(record.TypeVal == TYPEVAL_DIRETORIO && strcmp(partialPath,record.name) == 0){
 			
 
 			if(nome[0] == '\0'){
-		
+				
 				return record.inodeNumber;
 			}
 			return findDir(leInode(record.inodeNumber),nome);
@@ -920,9 +932,11 @@ int findDirEntryInd(int bloco){
 
 }
 //recebe um bloco e transforma esse bloco em um bloco de diretorios vazios
-void emptyDir(int bloco){
+void emptyDir(int bloco,int inodeNumber){
 	int i;
 	struct t2fs_record record;
+	struct t2fs_inode inode;
+	inode = leInode(inodeNumber);
 	carregaBloco(bloco);
 	for(i = 0; i < numeroRecords; i++) {
 
@@ -934,6 +948,8 @@ void emptyDir(int bloco){
 			
 	}	
 	escreveBloco(bloco);
+	inode.bytesFileSize += tamanhoBlocoBytes;
+	escreveInode(inode,inodeNumber);
 }
 
 //funcao auxiliar que aloca um bloco apontado por um ponteiro indireto
@@ -996,7 +1012,6 @@ int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int in
 	setBitmap2(BITMAP_DADOS,numeroNovoBloco,1);
 	carregaBloco(numeroBlocoInd);	
 	memcpy((void*) &(blocoAtual[(numeroInternoBloco-2)*sizeof(DWORD)]),(void*)&numeroNovoBloco,sizeof(DWORD));
-
 	escreveBloco(numeroBlocoInd);
 	leInode(inodeNumber);
 	inode.blocksFileSize += 1;
@@ -1017,16 +1032,17 @@ int singleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 	inode = leInode(inodeNumber);
 	carregaBloco(blocoIndireto);
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
-	memcpy((void*)&ptrAtual,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));			
+		carregaBloco(blocoIndireto);
+		memcpy((void*)&ptrAtual,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
+		//printf("ptr atual %d ///",ptrAtual);			
 			if(ptrAtual != INVALID_PTR)
 				memcpy((void*)&blocoNovoRecord,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));	
 				blocoNovoRecord = findDirEntryInd(blocoNovoRecord) ;
 				if(blocoNovoRecord > 0)
 					return blocoNovoRecord;
 			if(ptrAtual == INVALID_PTR){
-				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);
-				//printf("CRIANDO BLOCO INDIRETOOOOO");			
-				emptyDir(blocoNovoRecord);
+				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);		
+				emptyDir(blocoNovoRecord,inodeNumber);
 				inode.blocksFileSize += 1;
 				escreveInode(inode,inodeNumber);
 				return blocoNovoRecord;
@@ -1049,7 +1065,7 @@ int doubleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 					return blocoNovoRecord;
 			if(blocoAtual[i*sizeof(DWORD)] == INVALID_PTR){
 				blocoNovoRecord = createDataBlock(inodeNumber,inode.bytesFileSize);			
-				emptyDir(blocoNovoRecord);
+				emptyDir(blocoNovoRecord,inodeNumber);
 				return blocoNovoRecord;
 			}	
 	}
@@ -1068,6 +1084,7 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 		if(numeroNovoBloco < 0)
 			return -1;
 		setBitmap2(BITMAP_DADOS,numeroNovoBloco,1);
+		
 	}
 
 
@@ -1076,6 +1093,11 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 	if(numeroInternoBloco == 0){
 		inode.dataPtr[0] = numeroNovoBloco;
 		inode.blocksFileSize = 1;
+		//recarrega inode na memoria de trabalho	
+		leInode(numeroInode);
+		//sobreescreve inode
+		memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode)    ,INODE_SIZE);
+		escreveBloco(blocoInodesInicial+(((int)numeroInode/(tamanhoBlocoBytes/32))));		
 	}
 	if(numeroInternoBloco == 1){
 		inode.dataPtr[1] = numeroNovoBloco;
@@ -1130,6 +1152,7 @@ int createDataBlock(int numeroInode,int numeroInternoBloco){
 	//sobreescreve inode
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode)    ,INODE_SIZE);
 	escreveBloco(blocoInodesInicial+(((int)numeroInode/(tamanhoBlocoBytes/32))));
+	printInode(inode);	
 	return numeroNovoBloco;
 	
 
@@ -1150,7 +1173,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 		
 		createDataBlock(dirInodeNumber,0);
 		diretorioInode = leInode(dirInodeNumber);
-		emptyDir(leInode(dirInodeNumber).dataPtr[0]);
+		emptyDir(leInode(dirInodeNumber).dataPtr[0],dirInodeNumber);
 		diretorioInode = leInode(dirInodeNumber);
 		
 	}
@@ -1178,7 +1201,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	if(diretorioInode.blocksFileSize == 1){
 		createDataBlock(dirInodeNumber,1);
 		diretorioInode = leInode(dirInodeNumber);
-		emptyDir(leInode(dirInodeNumber).dataPtr[1]);
+		emptyDir(leInode(dirInodeNumber).dataPtr[1],dirInodeNumber);
 		diretorioInode = leInode(dirInodeNumber);
 	}
 	if(diretorioInode.blocksFileSize > 1){	
@@ -1208,7 +1231,7 @@ int createDirEntry(int dirInodeNumber,char * fileLastName,int numeroInode,int ty
 	diretorioInode = leInode(dirInodeNumber);
 	
 	if(diretorioInode.blocksFileSize > 2){
-		printf("\nACHO QUE ESTE 'E O PTR %d ",diretorioInode.singleIndPtr);
+		//printf("\nACHO QUE ESTE 'E O PTR %d ",diretorioInode.singleIndPtr);
 		singleIndirFreeRecord = singleIndirRecordBlock(dirInodeNumber,diretorioInode.singleIndPtr);
 		carregaBloco(singleIndirFreeRecord);
 		for(i = 0; i < numeroRecords; i++) {
@@ -1418,6 +1441,16 @@ int verificaEntradasAbertas(struct t2fs_inode diretorioInode,char * nome){
 		
 	return 0;	
 }
+void refreshCurrentPath(){
+	char thisDir[] = ".";
+	int inodeNumber;
+	inodeNumber = findDir(diretorioAtualInode,thisDir);
+	diretorioAtualInode = leInode(inodeNumber);
+	
+
+
+
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1491,7 +1524,7 @@ FILE2 create2 (char *filename){
 	
 	if(createDirEntry(dirInodeNumber, fileLastName, numeroInode,TYPEVAL_REGULAR) < 0)
 		return -5;
-
+	refreshCurrentPath();
 	strcpy(tempFileName, filename);
 	return open2(tempFileName);
 }
@@ -1535,6 +1568,7 @@ int delete2 (char *filename){
 		escreveInode(inode,numeroInode);
 	}
 	setBitmap2 (BITMAP_INODE,numeroInode, 0);
+	refreshCurrentPath();
 	return 0;
 }
 
@@ -1553,6 +1587,7 @@ FILE2 open2 (char *filename){
 			fileHandleList[i].validade = VALIDO;
 			fileHandleList[i].seekPtr  = 0;
 			fileHandleList[i].inodeNumber    = numeroInode;
+			refreshCurrentPath();
 			return i;
 		}
 		i++;	
@@ -1564,6 +1599,7 @@ int close2 (FILE2 handle){
 	init();
 	
 	fileHandleList[handle].validade = NAO_VALIDO;
+	refreshCurrentPath();
 	return 0;
 
 }
@@ -1585,7 +1621,7 @@ int read2(FILE2 handle, char *buffer, int size){
 	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
 	//verifica se o arquivo nao 'e vazio
 	if(inode.bytesFileSize == 0){
-
+		refreshCurrentPath();
 		return 0;
 	}
 
@@ -1627,6 +1663,7 @@ int read2(FILE2 handle, char *buffer, int size){
 
 	}
 	fileHandleList[handle].seekPtr += i;
+	refreshCurrentPath();
 	return i;		
 
 }
@@ -1711,6 +1748,7 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	fileHandleList[handle].seekPtr = fileHandleList[handle].seekPtr + size;
 	//printf("--->>>>>> Inode.sizeBloco:%d\n", iNode.blocksFileSize);
 	escreveInode(iNode, fileHandleList[handle].inodeNumber);
+	refreshCurrentPath();
 	return size;
 } 
 
@@ -1742,7 +1780,8 @@ int truncate2 (FILE2 handle) {
 	fileHandleList[handle].seekPtr = fileHandleList[handle].seekPtr - 1;	
 
 	escreveInode(iNode, fileHandleList[handle].inodeNumber);	
-	//iNode = leInode(fileHandleList[handle].inodeNumber);	
+	//iNode = leInode(fileHandleList[handle].inodeNumber);
+	refreshCurrentPath();	
 	return 0;
 	
 }
@@ -1764,6 +1803,7 @@ int seek2 (FILE2 handle,unsigned int offset){
 	}
 	else{
 		fileHandleList[handle].seekPtr = offset;
+		refreshCurrentPath();
 		return 0;		
 	}	
 }
@@ -1835,7 +1875,7 @@ int mkdir2 (char *pathname) {
 		return -8;
 	if(createDirEntry(numeroInode,fatherDir,dirInodeNumber,TYPEVAL_DIRETORIO) < 0)
 		return -9;
-	
+	refreshCurrentPath();
 	strcpy(tempFileName,pathname);
 	return opendir2(tempFileName);
 
@@ -2057,7 +2097,7 @@ int diretorioVazio(int numeroInode){
 		
 	}
 	//o diretorio vazio tera apena as entradas "." e ".."
-	
+	refreshCurrentPath();
 	return 0;
 
 }
@@ -2109,6 +2149,7 @@ int rmdir2 (char *pathname) {
 		escreveInode(inode,numeroInode);
 	}
 	setBitmap2 (BITMAP_INODE,numeroInode, 0);
+	refreshCurrentPath();
 	return 0;
 
 }
@@ -2158,6 +2199,7 @@ DIR2 opendir2 (char *pathname){
 			dirHandleList[i].validade = VALIDO;
 			dirHandleList[i].seekPtr  = 0;
 			dirHandleList[i].inodeNumber    = numeroInode;
+			refreshCurrentPath();
 			return i;
 		}
 		i++;	
@@ -2184,7 +2226,6 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			numeroInternoRecord ++;
 			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO)
 			&& numeroInternoRecord <=(tamanhoBlocoBytes/sizeof(record)));
-			printf("numeroInterno record  %d ->",numeroInternoRecord);
 			if(numeroInternoRecord <= tamanhoBlocoBytes/sizeof(record)){
 				dirHandleList[handle].seekPtr = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 
@@ -2194,7 +2235,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
 				dentry->fileType = record.TypeVal;
-				
+				refreshCurrentPath();
 				return 0;
 			}else if(numeroInternoRecord > tamanhoBlocoBytes/sizeof(record)){
 				return -1;
@@ -2214,7 +2255,6 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			numeroInternoRecord ++;
 			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
 			&& numeroInternoRecord <= (tamanhoBlocoBytes/sizeof(record)));
-			printf("numeroInterno record  %d ->",numeroInternoRecord);
 			if(numeroInternoRecord <= tamanhoBlocoBytes/sizeof(record)){
 				dirHandleList[handle].seekPtr  = numeroBlocoRecord * (tamanhoBlocoBytes/sizeof(record)) + numeroInternoRecord;
 				//monta estrutura de retorno
@@ -2222,7 +2262,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 				recordInode      = leInode(record.inodeNumber);
 				dentry->fileSize = recordInode.bytesFileSize;
 				dentry->fileType = record.TypeVal;
-				
+				refreshCurrentPath();
 				return 0;
 			
 			}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
@@ -2235,7 +2275,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			}
 			
 	}
-	if(numeroBlocoRecord >= 2){
+	if(numeroBlocoRecord >= 2 && numeroBlocoRecord <(tamanhoBlocoBytes/sizeof(DWORD)) + 2){
 		
 		do{
 			record = procuraDirEntryIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
@@ -2244,23 +2284,23 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) < diretorioInode.bytesFileSize&&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) < tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
+		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
 		if(record.TypeVal != TYPEVAL_INVALIDO){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
 			dentry->fileSize = recordInode.bytesFileSize;
 			dentry->fileType = record.TypeVal;
-				
+			refreshCurrentPath();	
 			return 0;
 		
-		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
+		}else if(numeroInternoRecord > tamanhoBlocoBytes/sizeof(record)){
 				return -1;
 
 		}
 	}
-	if(numeroBlocoRecord >(tamanhoBlocoBytes/sizeof(DWORD) + 2)){
+	if(numeroBlocoRecord >=(tamanhoBlocoBytes/sizeof(DWORD) + 2)){
 		do{
 			record = procuraDirEntryDuplaIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
 			dirHandleList[handle].seekPtr ++;
@@ -2268,15 +2308,15 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) < diretorioInode.bytesFileSize&&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) < tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
+		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
 		if(record.TypeVal != TYPEVAL_INVALIDO){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
 			dentry->fileSize = recordInode.bytesFileSize;
 			dentry->fileType = record.TypeVal;
-				
+			refreshCurrentPath();	
 			return 0;
 		
 		}else if(numeroInternoRecord >= tamanhoBlocoBytes/sizeof(record)){
@@ -2297,36 +2337,59 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 int closedir2 (DIR2 handle) {
 	init();
 	dirHandleList[handle].validade = NAO_VALIDO;
+	refreshCurrentPath();
 	return 0;
 }
 
 ////////////////////////////MAIN/////////////////////////////////////////
 int main(){
-	int i;
-	char dirPath[]  =  "pathDir0";
-	char dirPai [] = "pai";
 	DIR2 handle;
+	char dirPath[] = "dirPathnnn";
+	char dirPai[]  = "dirPai";
+	char dirFound [] = "dirPath046";
+	int dezena,unidade,centena,i,j,k,ptr;
 	DIRENT2 dirEntry;
-	handle = open2(dirPai);
-	if(handle < -1)
-		handle = open2(dirPai);
+	dezena =  48;
+	centena  = 48;
+	unidade = 47;
+	handle = mkdir2(dirPai);
+	if(handle < 0)
+		handle = opendir2(dirPai);
 	chdir2(dirPai);
-	for (i = 0;i<31;i++){
-		dirPath[7] = 48 + i;
-		closedir2(mkdir2(dirPath));
-		printf("%d",i);
+	for(k = 0; k<2; k++){
+		for(j = 0; j <10; j++){
+
+			for( i = 0; i < 10; i++){
+
+				unidade ++;
+		
+			
+				dirPath[7] = centena;
+				dirPath[8] = dezena;
+				dirPath[9] = unidade;
+				printf("creating %s\n",dirPath,closedir2(mkdir2(dirPath)));
+				
+
+		
+		
+
+			}
+			dezena ++;
+			unidade = 47;
+		}
+	centena ++;
+	unidade = 47;
+	dezena  = 48;
 	}
-	printf("\n");
-	i = 1;
-	while(readdir2(handle,&dirEntry) == 0 ){
-		printf("%d %s\n",i,dirEntry.name);
+		i=0;
+	while(readdir2(handle, &dirEntry) == 0){
+		printf("%d -> %s\n",i,dirEntry.name);
 		i++;
 		
 	}
-	printf("%s\n",dirEntry.name);
-	printInode(leInode(13));
+	printf("%d",opendir2(dirFound));
+	printInode(diretorioAtualInode);
 	return 0;
-
 }
 
 
