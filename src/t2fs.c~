@@ -443,8 +443,10 @@ struct t2fs_record  procuraRecordsDuplaIndirecao2(int blocoIndireto,int deletado
 		if(bloco == INVALID_PTR)
 			break;
 		record =  procuraRecordsIndirecao2(bloco,deletadoNumero,blocoRecord);
-		if(record.inodeNumber >=  0)
+		temp = record.inodeNumber;
+		if(temp >= 0 ){
 			return record;
+		}
 		
 
 	}
@@ -958,7 +960,6 @@ void emptyDir(int bloco,int inodeNumber){
 	
 	escreveBloco(bloco);	
 	leInode(inodeNumber);
-	printf("files block size %d",inode.blocksFileSize);
 	inode.bytesFileSize = tamanhoBlocoBytes*inode.blocksFileSize;
 	indiceInodeBloco = inodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode),INODE_SIZE);
@@ -1550,7 +1551,7 @@ int delete2 (char *filename){
 	if(procuraOpen(numeroInode,TYPEVAL_REGULAR) < 0)
 		return -2;
 	strcpy(pathNameCpy,filename);
-	findFile(diretorioAtualInode,pathNameCpy)
+	findFile(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
 	inode = leInode(numeroInode);

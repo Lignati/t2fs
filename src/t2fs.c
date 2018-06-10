@@ -435,7 +435,7 @@ struct t2fs_record  procuraRecordsDuplaIndirecao(int blocoIndireto,char * partia
 }
 //funcao utilizada pela rmdir para percorrer bloco de indirecao, chama funcao que percorre os records dentro dos blocos apontados
 struct t2fs_record  procuraRecordsDuplaIndirecao2(int blocoIndireto,int deletadoNumero,int * blocoRecord){
-	int i,bloco;
+	int i,bloco,temp;
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
@@ -443,8 +443,10 @@ struct t2fs_record  procuraRecordsDuplaIndirecao2(int blocoIndireto,int deletado
 		if(bloco == INVALID_PTR)
 			break;
 		record =  procuraRecordsIndirecao2(bloco,deletadoNumero,blocoRecord);
-		if(record.inodeNumber >=  0)
+		temp = record.inodeNumber;
+		if(temp >= 0 ){
 			return record;
+		}
 		
 
 	}
@@ -958,7 +960,6 @@ void emptyDir(int bloco,int inodeNumber){
 	
 	escreveBloco(bloco);	
 	leInode(inodeNumber);
-	printf("files block size %d",inode.blocksFileSize);
 	inode.bytesFileSize = tamanhoBlocoBytes*inode.blocksFileSize;
 	indiceInodeBloco = inodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode),INODE_SIZE);
