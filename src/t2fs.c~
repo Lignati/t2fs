@@ -330,18 +330,23 @@ struct t2fs_record  removeRecords(int bloco,char* partialPath,int type){
 	struct t2fs_record record;
 	recordErro.inodeNumber = -1;
 	carregaBloco(bloco);
+	//printf("current Block %d\n",bloco);
 	for(i = 0; i < numeroRecords; i++) {
+		//printf("del rec name %s block %d\n",record.name,bloco);
 		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
 		if(record.TypeVal == TYPEVAL_DIRETORIO  && strcmp(partialPath,record.name) == 0){
 			return record;
 		}
-		if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name)){
+		if(record.TypeVal == TYPEVAL_REGULAR && strcmp(partialPath,record.name) == 0){
+			
 			record.TypeVal =  TYPEVAL_INVALIDO;
 			memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 			escreveBloco(bloco);
+			return record;
 			
 		}
 	}
+
 	return recordErro;	
 
 		
@@ -355,6 +360,7 @@ struct t2fs_record  procuraRecordsIndirecao(int blocoIndireto,char * partialPath
 	struct t2fs_record record;	
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
+		
 		memcpy((void*)&bloco,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
 		if(bloco == INVALID_PTR){
 			break;
@@ -396,11 +402,14 @@ struct t2fs_record  procuraERemoveRecordsIndirecao(int blocoIndireto,char * part
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
 		memcpy((void*)&bloco,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
+
 		if(bloco == INVALID_PTR)
 			break;
 		record =  removeRecords(bloco,partialPath,type);
-		if(record.inodeNumber >=  0 )
+		temp = record.inodeNumber;
+		if(temp >= 0 ){
 			return record;
+		}
 		
 
 	}
@@ -917,11 +926,11 @@ int findBlocoLivre(){
 int findDirEntryInd(int bloco){
 	int i;
 	struct t2fs_record record;
-	
 	carregaBloco(bloco);
 	for(i = 0; i < numeroRecords; i++) {
 
 		memcpy((void*)&record,(void *)&blocoAtual[i*64],sizeof(struct t2fs_record));
+		
 		if(record.TypeVal == TYPEVAL_INVALIDO){
 			return bloco;
 
@@ -946,9 +955,11 @@ void emptyDir(int bloco,int inodeNumber){
 		
 			
 	}
+	
 	escreveBloco(bloco);	
 	leInode(inodeNumber);
-	inode.bytesFileSize += tamanhoBlocoBytes;
+	printf("files block size %d",inode.blocksFileSize);
+	inode.bytesFileSize = tamanhoBlocoBytes*inode.blocksFileSize;
 	indiceInodeBloco = inodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode),INODE_SIZE);
 	escreveBloco(blocoInodesInicial+((int)inodeNumber/(tamanhoBlocoBytes/32)));
@@ -1016,7 +1027,7 @@ int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int in
 	memcpy((void*) &(blocoAtual[(numeroInternoBloco-2)*sizeof(DWORD)]),(void*)&numeroNovoBloco,sizeof(DWORD));
 	escreveBloco(numeroBlocoInd);
 	leInode(inodeNumber);
-	inode.blocksFileSize += 1;
+
 	indiceInodeBloco = inodeNumber % (tamanhoBlocoBytes/INODE_SIZE);
 	memcpy((void*)&blocoAtual[INODE_SIZE * indiceInodeBloco],(void *)&(inode),INODE_SIZE);
 	escreveBloco(blocoInodesInicial+((int)inodeNumber/(tamanhoBlocoBytes/32)));
@@ -1036,10 +1047,10 @@ int singleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 	for(i = 0; i < tamanhoBlocoBytes/sizeof(DWORD);i++){
 		carregaBloco(blocoIndireto);
 		memcpy((void*)&ptrAtual,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));
-		//printf("ptr atual %d ///",ptrAtual);			
+				
 			if(ptrAtual != INVALID_PTR)
 				memcpy((void*)&blocoNovoRecord,(void *)&blocoAtual[i*sizeof(DWORD)],sizeof(DWORD));	
-				blocoNovoRecord = findDirEntryInd(blocoNovoRecord) ;
+				blocoNovoRecord = findDirEntryInd(ptrAtual) ;
 				if(blocoNovoRecord > 0)
 					return blocoNovoRecord;
 			if(ptrAtual == INVALID_PTR){
@@ -1067,8 +1078,8 @@ int doubleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 				if(blocoNovoRecord > 0)
 					return blocoNovoRecord;
 			if(blocoAtual[i*sizeof(DWORD)] == INVALID_PTR){
-				blocoNovoRecord = createDataBlock(inodeNumber,inode.bytesFileSize);			
-				emptyDir(blocoNovoRecord,inodeNumber);
+				blocoNovoRecord = createDataBlock(inodeNumber,inode.blocksFileSize);			
+				
 				return blocoNovoRecord;
 			}	
 	}
@@ -1541,9 +1552,6 @@ int delete2 (char *filename){
 	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
-
-	if(numeroInode < 0)
-		return -1;
 	inode = leInode(numeroInode);
 	if(inode.blocksFileSize > 0){
 		setBitmap2 (BITMAP_DADOS,inode.dataPtr[0], 0);
@@ -1914,6 +1922,7 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(diretorioInode.dataPtr[0]);
+				return 1;
 
 			}
 		}
@@ -1927,6 +1936,7 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(diretorioInode.dataPtr[1]);
+				return 1;
 
 			}
 		}
@@ -1943,6 +1953,7 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));
 				escreveBloco(blocoRecords);
+				return 1;
 
 			}
 		}
@@ -1960,6 +1971,7 @@ int deleteThisInodeRecord(int  deletadoInodeNumero){
 				record.TypeVal = TYPEVAL_INVALIDO;
 				memcpy((void *)&blocoAtual[i*64],(void*)&record,sizeof(struct t2fs_record));	
 				escreveBloco(blocoRecords);
+				return 1;
 
 			}
 		
@@ -2361,9 +2373,9 @@ int closedir2 (DIR2 handle) {
 ////////////////////////////MAIN/////////////////////////////////////////
 int main(){
 	DIR2 handle,h2;
-	char dirPath[] = "dirPathnnn";
+	char dirPath[] = "filePathnnn";
 	char dirPai[] = "dirPai";
-	char dirFound [] = "dirPath045";
+	char dirFound [] = "filePat063n";
 	int dezena,unidade,centena,i,j,k,ptr;
 	DIRENT2 dirEntry;
 	dezena = 48;
@@ -2381,7 +2393,7 @@ int main(){
 					dirPath[8] = dezena;
 					dirPath[9] = unidade;
 					printf("%s\n",dirPath);
-					closedir2(mkdir2(dirPath));
+					close2(create2(dirPath));
 				}
 			dezena ++;
 			unidade = 47;
@@ -2390,12 +2402,12 @@ int main(){
 		unidade = 47;
 		dezena = 48;
 		//}
-	h2 = open2(dirFound);
+	printf("delete %d",delete2(dirFound));
 
 	i=0;
 	createDataBlock(53,0);
-	while(readdir2(h2, &dirEntry) == 0){
-		printf("%d -> %s\n",i,dirEntry.name);
+	while(readdir2(handle, &dirEntry) == 0){
+		printf("%d -> %s %d\n",i,dirEntry.name, dirEntry.fileType);
 		i++;
 	}
 
