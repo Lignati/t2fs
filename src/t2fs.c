@@ -1055,10 +1055,11 @@ int singleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 					return blocoNovoRecord;
 			if(ptrAtual == INVALID_PTR){
 				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);		
-				emptyDir(blocoNovoRecord,inodeNumber);
+				
 				inode = leInode(inodeNumber);
 				inode.blocksFileSize += 1;
 				escreveInode(inode,inodeNumber);
+				emptyDir(blocoNovoRecord,inodeNumber);
 				return blocoNovoRecord;
 			}	
 	}
@@ -1549,10 +1550,12 @@ int delete2 (char *filename){
 	if(procuraOpen(numeroInode,TYPEVAL_REGULAR) < 0)
 		return -2;
 	strcpy(pathNameCpy,filename);
-	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,pathNameCpy);
+	findFile(diretorioAtualInode,pathNameCpy);
 	if(numeroInode < 0)
 		return -1;
 	inode = leInode(numeroInode);
+	strcpy(pathNameCpy,filename);
+	numeroInode = findFileAndRemoveRecord(diretorioAtualInode,pathNameCpy);
 	if(inode.blocksFileSize > 0){
 		setBitmap2 (BITMAP_DADOS,inode.dataPtr[0], 0);
 		inode.dataPtr[0] = INVALID_PTR;
@@ -2057,9 +2060,9 @@ int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
 			*seekPointer ++;
 			numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
-			
+		
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		*seekPointer * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		*seekPointer * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize &&
 		*seekPointer * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
 		if(record.TypeVal != TYPEVAL_INVALIDO){
 			//monta estrutura de retorno
@@ -2310,11 +2313,11 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			dirHandleList[handle].seekPtr ++;
 			numeroBlocoRecord   = dirHandleList[handle].seekPtr   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
-			
+
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		 dirHandleList[handle].seekPtr <= (diretorioInode.bytesFileSize/ sizeof(struct t2fs_record))&&
 		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
-		if(record.TypeVal != TYPEVAL_INVALIDO){
+		if(record.TypeVal != TYPEVAL_INVALIDO &&  dirHandleList[handle].seekPtr < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
@@ -2336,9 +2339,9 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 			numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= diretorioInode.bytesFileSize&&
+		 dirHandleList[handle].seekPtr   <= (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))&&
 		 dirHandleList[handle].seekPtr * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
-		if(record.TypeVal != TYPEVAL_INVALIDO){
+		if(record.TypeVal != TYPEVAL_INVALIDO &&  dirHandleList[handle].seekPtr < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
@@ -2375,7 +2378,7 @@ int main(){
 	DIR2 handle,h2;
 	char dirPath[] = "filePathnnn";
 	char dirPai[] = "dirPai";
-	char dirFound [] = "filePat063n";
+	char dirFound [] = "filePat040n";
 	int dezena,unidade,centena,i,j,k,ptr;
 	DIRENT2 dirEntry;
 	dezena = 48;
