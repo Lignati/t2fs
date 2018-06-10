@@ -2374,50 +2374,6 @@ int closedir2 (DIR2 handle) {
 	return 0;
 }
 
-////////////////////////////MAIN/////////////////////////////////////////
-int main(){
-	DIR2 handle,h2;
-	char dirPath[] = "filePathnnn";
-	char dirPai[] = "dirPai";
-	char dirFound [] = "filePat040n";
-	int dezena,unidade,centena,i,j,k,ptr;
-	DIRENT2 dirEntry;
-	dezena = 48;
-	centena = 48;
-	unidade = 47;
-	handle = mkdir2(dirPai);
-	if(handle < 0)
-		handle = opendir2(dirPai);
-		chdir2(dirPai);
-		//for(k = 0; k<10; k++){
-			for(j = 0; j <7; j++){
-				for( i = 0; i < 10; i++){
-					unidade ++;
-					dirPath[7] = centena;
-					dirPath[8] = dezena;
-					dirPath[9] = unidade;
-					printf("%s\n",dirPath);
-					close2(create2(dirPath));
-				}
-			dezena ++;
-			unidade = 47;
-			}
-		centena ++;
-		unidade = 47;
-		dezena = 48;
-		//}
-	printf("delete %d",delete2(dirFound));
-
-	i=0;
-	createDataBlock(53,0);
-	while(readdir2(handle, &dirEntry) == 0){
-		printf("%d -> %s %d\n",i,dirEntry.name, dirEntry.fileType);
-		i++;
-	}
-
-	printInode(diretorioAtualInode);
-	return 0;
-}
 
 
 
