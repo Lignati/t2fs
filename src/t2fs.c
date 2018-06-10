@@ -1045,6 +1045,7 @@ int singleIndirRecordBlock(int inodeNumber,int blocoIndireto){
 			if(ptrAtual == INVALID_PTR){
 				blocoNovoRecord = createDataBlockSingleIndir(inode.singleIndPtr,i+2,inodeNumber);		
 				emptyDir(blocoNovoRecord,inodeNumber);
+				inode = leInode(inodeNumber);
 				inode.blocksFileSize += 1;
 				escreveInode(inode,inodeNumber);
 				return blocoNovoRecord;
@@ -2263,6 +2264,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 		carregaBloco(diretorioInode.dataPtr[1]);
 
 			do{
+			
 			memcpy((void*)&record,(void *)&blocoAtual[numeroInternoRecord*64],sizeof(struct t2fs_record));
 			numeroInternoRecord ++;
 			}while(!(record.TypeVal == TYPEVAL_REGULAR || record.TypeVal == TYPEVAL_DIRETORIO) 
@@ -2290,7 +2292,9 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry) {
 	if(numeroBlocoRecord >= 2 && numeroBlocoRecord <(tamanhoBlocoBytes/sizeof(DWORD)) + 2){
 		
 		do{
+			
 			record = procuraDirEntryIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
+			//printf("%d\n",record.TypeVal);
 			dirHandleList[handle].seekPtr ++;
 			numeroBlocoRecord   = dirHandleList[handle].seekPtr   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			numeroInternoRecord = dirHandleList[handle].seekPtr % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
@@ -2356,11 +2360,11 @@ int closedir2 (DIR2 handle) {
 
 ////////////////////////////MAIN/////////////////////////////////////////
 int main(){
-	DIR2 handle;
+	DIR2 handle,h2;
 	char dirPath[] = "dirPathnnn";
 	char dirPai[] = "dirPai";
-	char dirFound [] = "dirPath068";
-	int dezena,unidade,centena,i,j,k,ptr,h2;
+	char dirFound [] = "dirPath045";
+	int dezena,unidade,centena,i,j,k,ptr;
 	DIRENT2 dirEntry;
 	dezena = 48;
 	centena = 48;
@@ -2386,21 +2390,16 @@ int main(){
 		unidade = 47;
 		dezena = 48;
 		//}
+	h2 = opendir2(dirFound);
+
 	i=0;
 	createDataBlock(53,0);
-	while(readdir2(handle, &dirEntry) == 0){
-		//printf("%d -> %s\n",i,dirEntry.name);
-		i++;
-	}
-	h2 = opendir2(dirFound);
-	printf("h2 %d\n",h2);
-	i = 0; 
 	while(readdir2(h2, &dirEntry) == 0){
 		printf("%d -> %s\n",i,dirEntry.name);
 		i++;
 	}
-	printInode(leInode(53));
-	//readAndPrintDir(leInode(21));
+
+	printInode(diretorioAtualInode);
 	return 0;
 }
 
