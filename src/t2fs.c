@@ -1709,12 +1709,6 @@ int write2 (FILE2 handle,char *buffer, int size) {
 		return -1;	
 	iNode = leInode(fileHandleList[handle].inodeNumber);
 	
-	/*if (fileHandleList[handle].seekPtr >= iNode.bytesFileSize && ){		
-		posIniWri = 0;
-		blocIni = iNode.blocksFileSize;
-
-	}
-	else{*/
 
 	posIniWri = fileHandleList[handle].seekPtr;
 	while (posIniWri >= tamanhoBlocoBytes){
@@ -1723,7 +1717,6 @@ int write2 (FILE2 handle,char *buffer, int size) {
 		blocIni++;
 	}		
   
-	//}
 	
 	while(restSize > 0){
 
