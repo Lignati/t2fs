@@ -1629,7 +1629,7 @@ int read2(FILE2 handle, char *buffer, int size){
 	struct t2fs_inode inode;
 	int bytesRestantes,blocoInicial,i,j;
 	init();
-	i = 0; 
+	
 	if(fileHandleList[handle].validade == NAO_VALIDO)
 		return -1;
 	
@@ -1639,17 +1639,17 @@ int read2(FILE2 handle, char *buffer, int size){
 
 
 	inode =  leInode(fileHandleList[handle].inodeNumber);
-	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr ;
+	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr  +1;
 	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
 	//verifica se o arquivo nao 'e vazio
 	if(inode.bytesFileSize == 0){
 		refreshCurrentPath();
 		return 0;
 	}
+	
 
-
-
-
+	i = 0; 
+	
 
 	if(blocoInicial == 0){
 		if(i < tamanhoBlocoBytes)
@@ -1664,6 +1664,8 @@ int read2(FILE2 handle, char *buffer, int size){
 			buffer[i] = blocoAtual[j];
 		} 
 	}
+	
+	bytesRestantes -= i;
 	if(blocoInicial == 1){
 		if(i < tamanhoBlocoBytes)
 			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
@@ -1676,9 +1678,13 @@ int read2(FILE2 handle, char *buffer, int size){
 			buffer[i] = blocoAtual[j];
 		} 
 	}
+	printf("i:%d seekPtr : %d, bloco inicial: %d size:%d\n",i, fileHandleList[handle].seekPtr,blocoInicial,bytesRestantes);
+	bytesRestantes -= i;
+	
 	//leitura bytes indirecao
 	if (bytesRestantes > 0){
-		//read 
+		//read
+		 printf("indirecao");
 		readArquivoIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 	}
 	if(bytesRestantes > 0){
@@ -1686,6 +1692,8 @@ int read2(FILE2 handle, char *buffer, int size){
 
 	}
 	fileHandleList[handle].seekPtr += i;
+	if(fileHandleList[handle].seekPtr == inode.bytesFileSize);
+		fileHandleList[handle].seekPtr == -1;
 	refreshCurrentPath();
 	return i;		
 
@@ -2389,3 +2397,45 @@ int closedir2 (DIR2 handle) {
 }
 
 ////////////////////////////MAIN/////////////////////////////////////////
+int main(){
+
+	struct t2fs_inode iNode;
+	char buffer[256] = "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   MEIO   DO   ARQUIVO    YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYFIM";
+	char bufferRead[256];
+	int i,j;
+	
+	create2 ("ArquivoMuitoGrande");
+	int handleNumber = open2 ("ArquivoMuitoGrande");
+	int maxBlocos = tamanhoBlocoBytes/sizeof(DWORD) * tamanhoBlocoBytes/sizeof(DWORD);
+		
+	printf("Escrevendo o numero maximo de blocos: %d\n", maxBlocos);
+	iNode = leInode(fileHandleList[handleNumber].inodeNumber);	
+	
+	while(iNode.blocksFileSize < 3){
+		if(iNode.doubleIndPtr != INVALID_PTR)
+			printf("doubleIndPtr --> iNode.blocksFileSize: %d\n", iNode.blocksFileSize);
+		write2(handleNumber, buffer,256);
+		iNode = leInode(fileHandleList[handleNumber].inodeNumber);		
+	}
+	iNode = leInode(fileHandleList[handleNumber].inodeNumber);	
+	printf("Total de blocos utilizados %d\n", iNode.blocksFileSize);
+	
+	printf("Agora ler tudo...\nPress Enter");
+	scanf("...", &i);
+	seek2(handleNumber, 0);
+	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
+	j = 0;
+	printf("inode %d", iNode.bytesFileSize);
+	while(fileHandleList[handleNumber].seekPtr < iNode.bytesFileSize - 1 ){
+		read2(handleNumber, bufferRead, 256);
+		for(i = 0; i < 256; i++)
+			printf("%c", bufferRead[i]);
+		j++;
+		printf("%d",j);
+
+	}
+
+	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
+	printf("\n\n\n\nFIM da Leitura dos %d Blocos\n", iNode.blocksFileSize);	
+	
+}
