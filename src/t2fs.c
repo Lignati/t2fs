@@ -1,23 +1,4 @@
-/*bernardo to do
-algumas indirecoes
 
------------------------------------------------------------------------
-cleiton to do 
- write2 -> 
------------------------------------------------------------------------
-unsigned tasks(por favor alguem revisa essa lista pra ver se nao sobrou nada)
-1-closedir2 -> done
-2-rmdir2
-4-close 2 -> done
-6-readdir -> done
-indentify2 :P -> done
-
-
-TESTAR OSTENSIVAMENTE
-5-getcwd2
-
-
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
