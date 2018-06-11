@@ -1,65 +1,59 @@
-int read2(FILE2 handle, char *buffer, int size){
-	struct t2fs_inode inode;
-	int bytesRestantes,blocoInicial,i,j;
-	init();
-	i = 0; 
-	if(fileHandleList[handle].validade == NAO_VALIDO)
-		return -1;
+#include <stdio.h>
+#include "../include/t2fs.h"
+int main(){
+	char dir[] = "/AAA";	
+	//char dir2[] = "/AAA/BBB";	
+	//char dir3[] = "./CCC";	
+	char  buffer[5];
+	int i;
+	printf("criando um novo diretório (ERRO %d)\n", mkdir2(dir));
 	
-	if(fileHandleList[handle].inodeNumber < 0)
-		return -2;
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,5));	
+	for (i = 0; i< 4; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%s", buffer);
+	}
+	printf("\n");	
 	
-
-
-	inode =  leInode(fileHandleList[handle].inodeNumber);
-	bytesRestantes = inode.bytesFileSize - fileHandleList[handle].seekPtr ;
-	blocoInicial = fileHandleList[handle].seekPtr/tamanhoBlocoBytes;
-	//verifica se o arquivo nao 'e vazio
-	if(inode.bytesFileSize == 0){
-		refreshCurrentPath();
-		return 0;
-	}
-
-
-
-
-
-	if(blocoInicial == 0){
-		if(i < tamanhoBlocoBytes)
-			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
-		else 
-			j = 0;
 	
-		if(i<bytesRestantes && i <size) {
-			carregaBloco(inode.dataPtr[0]);
-		}
-		for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
-			buffer[i] = blocoAtual[j];
-		} 
-	}
-	if(blocoInicial == 1){
-		if(i < tamanhoBlocoBytes)
-			j = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
-		else 
-			j = 0;
+	printf("Alterando diretório atual(ERRO %d)\n", chdir2(dir));
+	printf("Criando 9 diretórios...\n");
+	printf("A0 --- (ERRO %d)\n", mkdir2("/A0"));
+	printf("A1 --- (ERRO %d)\n", mkdir2("/A1"));
+	printf("A2 --- (ERRO %d)\n", mkdir2("/A2"));
+	printf("A3 --- (ERRO %d)\n", mkdir2("/A3"));
+	printf("A4 --- (ERRO %d)\n", mkdir2("/A4"));
+	printf("A5 --- (ERRO %d)\n", mkdir2("/A5"));
+	printf("A6 --- (ERRO %d)\n", mkdir2("/A6"));
+	printf("A7 --- (ERRO %d)\n", mkdir2("/A7"));
+	printf("A8 --- (ERRO %d)\n", mkdir2("/A8"));
 	
-		if(i<bytesRestantes && i <size) 
-			carregaBloco(inode.dataPtr[1]);
-		for(j=0; j < tamanhoBlocoBytes && i < size &&  i < bytesRestantes;i++,j++){
-			buffer[i] = blocoAtual[j];
-		} 
+	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,5));	
+	for (i = 0; i< 4; i++){
+		if(buffer[i] == '\0')
+			break;
+		printf("%s", buffer);
 	}
-	//leitura bytes indirecao
-	if (bytesRestantes > 0){
-		//read 
-		readArquivoIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
-	}
-	if(bytesRestantes > 0){
-		readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
-
-	}
-	fileHandleList[handle].seekPtr += i;
-	refreshCurrentPath();
-	return i;		
-
+	printf("\n");	
+	
+	printf("Tentando criar mais 1\n");
+	printf("B --- (ERRO %d)\n", mkdir2("/B"));
+	printf("Fechando... %d\n", closedir2(5));
+	printf("Fechando um...\nTentando criar um de novo\n");
+	printf("B --- (ERRO %d)\n", mkdir2("/B"));
+	
+	
+	
+	
+	
+	printf("FIM TESTES\n");
+	return 0;
+	
+	
 }
+
+
+
+
+
