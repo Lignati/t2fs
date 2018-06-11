@@ -16,7 +16,7 @@ int main(){
 	}
 	printf("\n");	
 	
-	printf("Diretório Atual debug %s:\n", currentPathName);		
+	//printf("Diretório Atual debug %s:\n", currentPathName);		
 	
 	printf("Alterando diretório atual(ERRO %d)\n", chdir2(dir));
 	printf("Diretório Atual(ERRO %d):", getcwd2 (buffer,7));
@@ -26,7 +26,7 @@ int main(){
 		printf("%c", buffer[i]);
 	}
 	printf("\n");	
-	printf("Diretório Atual debug %s:\n", currentPathName);	
+	//printf("Diretório Atual debug %s:\n", currentPathName);	
 
 	printf("FIM TESTES\n");
 	return 0;

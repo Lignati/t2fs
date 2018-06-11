@@ -1,3 +1,5 @@
+#include "../include/t2fs.h"
+#include <stdio.h>
 int main(){
 
 	struct t2fs_inode iNode;
@@ -19,8 +21,8 @@ int main(){
 	for(i = 0; i < 80; i++)
 		printf("%c", bufferRead[i]);
 	printf("\n");
-	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
-	printf("FIM DA LEITURA --- Total de blocos lidos = %d \n\n", iNode.blocksFileSize);
+	//iNode = leInode(fileHandleList[handleNumber].inodeNumber);
+	//printf("FIM DA LEITURA --- Total de blocos lidos = %d \n\n", iNode.blocksFileSize);
 	
 	/*
 	printf("Handles\n");
@@ -31,7 +33,7 @@ int main(){
 	
 	
 	printf("Fechando o arquivo %d\n",close2(handleNumber) );	
-	printf("\n\n\nfileHandleList[handleNumber] == VALIDO: %d\nfileHandleList[handleNumber].inodeNumber(%d) ", fileHandleList[handleNumber].validade == VALIDO, fileHandleList[handleNumber].inodeNumber);	
+	//printf("\n\n\nfileHandleList[handleNumber] == VALIDO: %d\nfileHandleList[handleNumber].inodeNumber(%d) ", fileHandleList[handleNumber].validade == VALIDO, fileHandleList[handleNumber].inodeNumber);	
 	printf("Apagando arquivo... %d\n", delete2("Arquivo1"));
 	printf("Tentando abrir arquivo deletado %d\n",open2 ("Arquivo1") );
 	printf("FIM \n\n");
