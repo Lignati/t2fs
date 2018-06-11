@@ -1477,7 +1477,7 @@ void refreshCurrentPath(){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int identify2 (char *name, int size){
 	init();
-	name = "Bernardo Neuhaus Lignati - 230159 \nCleiton Souza Lima - 262511\nLucas Augusto - 265038 \n";
+	name = "Bernardo Neuhaus Lignati - 230159 \nCleiton Souza Lima - 262511\nLucas Augusto Tansini - 265038 \n";
 	if (sizeof(name) > size)
 		return -1;
 	else
