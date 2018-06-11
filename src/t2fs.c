@@ -1697,9 +1697,7 @@ int read2(FILE2 handle, char *buffer, int size){
 		readArquivoDuplaIndirecao(inode.singleIndPtr,blocoInicial,&bytesRestantes,size,buffer,&i,handle);
 
 	}
-	printf("i:%d",i);
 	fileHandleList[handle].seekPtr += i;
-	printf("\n%d\n",fileHandleList[handle].seekPtr);
 	if(fileHandleList[handle].seekPtr == inode.bytesFileSize);
 		fileHandleList[handle].seekPtr == -1;
 	refreshCurrentPath();
@@ -2424,7 +2422,7 @@ int main(){
 	printf("Escrevendo o numero maximo de blocos: %d\n", maxBlocos);
 	iNode = leInode(fileHandleList[handleNumber].inodeNumber);	
 	
-	while(iNode.blocksFileSize < 5){
+	while(iNode.blocksFileSize < 5000){
 		if(iNode.doubleIndPtr != INVALID_PTR)
 			printf("doubleIndPtr --> iNode.blocksFileSize: %d\n", iNode.blocksFileSize);
 		write2(handleNumber, buffer,256);
@@ -2456,16 +2454,13 @@ int main(){
 		for(i = 0; i < 256; i++)
 			printf("%c",bufferRead[i]);
 		j++;
-		printf("\nbloco %d\n",j/4);
-
+		printf("JOTA %d\n",j/4);
 	}
-	//createDataBlock(fileHandleList[handleNumber].inodeNumber,0);
 	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
 	printInode(iNode);
 	carregaBloco(iNode.singleIndPtr);
 	memcpy((void*)&ptr,(void *) &(blocoAtual[0*sizeof(DWORD)]),sizeof(DWORD));
 	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
-	printf("%d\n",ptr);
 	printf("\n\n\n\nFIM da Leitura dos %d Blocos\n", iNode.blocksFileSize);	
 	
 }
