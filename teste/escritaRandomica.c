@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include "../include/t2fs.h"
 int main(){
 
 	struct t2fs_inode iNode;
@@ -5,6 +7,7 @@ int main(){
 	char buffer2[100] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 	char bufferRead[256];
 	int i, handleNumber;
+	HANDLE fileHandleList[10];
 	
 	handleNumber = create2 ("Arquivo1");
 	seek2(handleNumber,0);
@@ -22,8 +25,8 @@ int main(){
 	for(i = 0; i < 6; i++)
 		write2(handleNumber, buffer2,100);		
 		
-	iNode = leInode(fileHandleList[handleNumber].inodeNumber);
-	printInode(iNode);		
+	//iNode = leInode(fileHandleList[handleNumber].inodeNumber);
+	//printInode(iNode);		
 		
 	
 	seek2(handleNumber, 0);

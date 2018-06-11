@@ -29,7 +29,7 @@ t2fs.o:
 	$(CC) -c $(SRC_DIR)t2fs.c -o $(BIN_DIR)libt2fs.o 
 
 
-compile_tests:	test1 test2 test3 test4 test5 test6 test7 test8 test9
+compile_tests:	test1 test2 test3 test4 test5 test6 test7 test8
 	
 test1: 
 	$(CC) -o $(EXEMP_DIR)test1 $(TES_DIR)delete2.c $(LIB_DIR)$(LIB_NAME)
@@ -44,11 +44,9 @@ test5:
 test6: 
 	$(CC) -o $(EXEMP_DIR)test6 $(TES_DIR)main.c $(LIB_DIR)$(LIB_NAME)
 test7: 
-	$(CC) -o $(EXEMP_DIR)test7 $(TES_DIR)outrosTestes.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test7 $(TES_DIR)truncate.c $(LIB_DIR)$(LIB_NAME)
 test8: 
-	$(CC) -o $(EXEMP_DIR)test8 $(TES_DIR)truncate.c $(LIB_DIR)$(LIB_NAME)
-test9: 
-	$(CC) -o $(EXEMP_DIR)test9 $(TES_DIR)WRnumMaxBlocks.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test8 $(TES_DIR)WRnumMaxBlocks.c $(LIB_DIR)$(LIB_NAME)
 
 
 clean:
