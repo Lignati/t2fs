@@ -23,7 +23,7 @@ all:	lib	compile_tests
 	
 
 lib:	t2fs.o
-	ar crs $(LIB_DIR)libt2fs.a $(BIN_DIR)libt2fs.o $(LIB_DIR)apidisk.o  $(LIB_DIR)bitmap2.o
+	ar crs $(LIB_DIR)libt2fs.a $(BIN_DIR)libt2fs.o $(LIB_DIR)apidisk.o  $(LIB_DIR)bitmap2.o 
 
 t2fs.o: 
 	$(CC) -c $(SRC_DIR)t2fs.c -o $(BIN_DIR)libt2fs.o 
@@ -50,7 +50,7 @@ test8:
 
 
 clean:
-	rm -rf $(EXEMP_DIR)/*
+	rm -rf $(EXEMP_DIR)*
 	rm -rf $(TES_DIR)*.o
 	rm $(BIN_DIR)libt2fs.o
 	rm $(LIB_DIR)libt2fs.a

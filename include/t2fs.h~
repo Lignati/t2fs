@@ -70,7 +70,19 @@ typedef struct{
 
 #pragma pack(pop)
 
+struct t2fs_inode diretorioAtualInode;
+struct t2fs_superbloco superBloco;
+struct t2fs_inode diretorioRaizInode;
+char * blocoAtual;
+char * currentPathName;
+int blocoInodesInicial;
+int tamanhoBlocoBytes;
+int tamanhoBloco; //quantidade de setores por bloco
+int numeroRecords;
+int initFlag = 0;
 
+HANDLE fileHandleList[10];
+HANDLE dirHandleList [10];
 /*-----------------------------------------------------------------------------
 Função: Usada para identificar os desenvolvedores do T2FS.
 	Essa função copia um string de identificação para o ponteiro indicado por "name".
@@ -319,4 +331,5 @@ int closedir2 (DIR2 handle);
 int createDataBlockSingleIndir(int numeroBlocoInd, int numeroInternoBloco,int inodeNumber);
 int createDataBlock(int numeroInode,int numeroInternoBloco);
 int  verificaEntradasAbertasIndirecao(int blocoIndireto,char * nome);
+int verificaEntradasAbertas(struct t2fs_inode diretorioInode,char * nome);
 #endif

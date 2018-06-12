@@ -70,7 +70,6 @@ typedef struct{
 
 #pragma pack(pop)
 
-
 /*-----------------------------------------------------------------------------
 Função: Usada para identificar os desenvolvedores do T2FS.
 	Essa função copia um string de identificação para o ponteiro indicado por "name".

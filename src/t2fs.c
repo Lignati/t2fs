@@ -140,6 +140,7 @@ struct t2fs_inode leInode(int n){
 	carregaBloco(blocoInodesInicial+((int)n/(tamanhoBlocoBytes/sizeof(struct t2fs_inode))));
 	pos =(n%(tamanhoBlocoBytes/sizeof(struct t2fs_inode)))*INODE_SIZE;
 
+
 	//printf("leInode: bloco %d ... Pos %d\n", (blocoInodesInicial+((int)n/32)), pos );
 	memcpy((void *)&(iNode.blocksFileSize),            (void*)&blocoAtual[pos]    ,4);
 	memcpy((void *)&(iNode.bytesFileSize),             (void*)&blocoAtual[pos+4]  ,4);
@@ -771,7 +772,7 @@ void initDirHandleList(){
 void init(){
 
 	if (initFlag == 0){
-
+		
 		carregaSuperBloco();
 		iniciaBloco();
 		iniciaStringPath();
