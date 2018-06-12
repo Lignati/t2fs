@@ -9,6 +9,12 @@
 #
 # OBSERVAR que as variáveis de ambiente consideram que o Makefile está no diretótio "cthread"
 # 
+
+#NESTE MAKE FILE 
+#regras all e clean dizem respeito a criacao e exclusao de arquivos realtivos a criacao da lib 
+#regras teste e clean-test dizem respeito a criacao e exclusao de arquivos relativos aos testes
+#
+#
 CC=gcc
 LIB_DIR=./lib/
 INC_DIR=./include/
@@ -19,38 +25,40 @@ TES_DIR=./teste/
 EXEMP_DIR=./exemplo/
 LIB_NAME = libt2fs.a
 
-all:	lib	compile_tests	
+all:	lib
 	
 
 lib:	t2fs.o
 	ar crs $(LIB_DIR)libt2fs.a $(BIN_DIR)libt2fs.o $(LIB_DIR)apidisk.o  $(LIB_DIR)bitmap2.o 
 
 t2fs.o: 
-	$(CC) -c $(SRC_DIR)t2fs.c -o $(BIN_DIR)libt2fs.o 
+	$(CC) -c $(SRC_DIR)t2fs.c -o $(BIN_DIR)libt2fs.o   -Wall
 
 
-compile_tests:	test1 test2 test3 test4 test5 test6 test7 test8
-	
+tests:	test1 test2 test3 test4 test5 test6 test7 test8 cp-disk-exemplos
+
 test1: 
-	$(CC) -o $(EXEMP_DIR)test1 $(TES_DIR)delete2.c $(LIB_DIR)$(LIB_NAME)
-test2: 
-	$(CC) -o $(EXEMP_DIR)test2 $(TES_DIR)DezDiretorios.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test1 $(TES_DIR)delete2.c -L$(LIB_DIR) -lt2fs 
+test2:
+	$(CC) -o $(EXEMP_DIR)test2 $(TES_DIR)DezDiretorios.c -L$(LIB_DIR) -lt2fs
 test3: 
-	$(CC) -o $(EXEMP_DIR)test3 $(TES_DIR)diretorios.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test3 $(TES_DIR)diretorios.c -L$(LIB_DIR) -lt2fs
 test4: 
-	$(CC) -o $(EXEMP_DIR)test4 $(TES_DIR)RW1to100.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test4 $(TES_DIR)RW1to100.c -L$(LIB_DIR) -lt2fs
 test5: 
-	$(CC) -o $(EXEMP_DIR)test5 $(TES_DIR)escritaRandomica.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test5 $(TES_DIR)escritaRandomica.c -L$(LIB_DIR) -lt2fs
 test6: 
-	$(CC) -o $(EXEMP_DIR)test6 $(TES_DIR)main.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test6 $(TES_DIR)main.c -L$(LIB_DIR) -lt2fs
 test7: 
-	$(CC) -o $(EXEMP_DIR)test7 $(TES_DIR)truncate.c $(LIB_DIR)$(LIB_NAME)
+	$(CC) -o $(EXEMP_DIR)test7 $(TES_DIR)truncate.c -L$(LIB_DIR) -lt2fs
 test8: 
-	$(CC) -o $(EXEMP_DIR)test8 $(TES_DIR)WRnumMaxBlocks.c $(LIB_DIR)$(LIB_NAME)
-
+	$(CC) -o $(EXEMP_DIR)test8 $(TES_DIR)WRnumMaxBlocks.c -L$(LIB_DIR) -lt2fs
+cp-disk-exemplos:
+	cp t2fs_disk.dat $(EXEMP_DIR)
+clean-tests:
+		rm -rf $(TES_DIR)*.o
+		rm -rf $(EXEMP_DIR)*
 
 clean:
-	rm -rf $(EXEMP_DIR)*
-	rm -rf $(TES_DIR)*.o
 	rm $(BIN_DIR)libt2fs.o
 	rm $(LIB_DIR)libt2fs.a

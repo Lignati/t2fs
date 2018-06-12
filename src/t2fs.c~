@@ -772,7 +772,7 @@ void initDirHandleList(){
 void init(){
 
 	if (initFlag == 0){
-
+		
 		carregaSuperBloco();
 		iniciaBloco();
 		iniciaStringPath();
@@ -803,7 +803,6 @@ void readArquivoIndirecao(int ptrIndirecao ,int blocoInicial,int * bytesRestante
 		carregaBloco(ptrIndirecao);
 
 		memcpy((void*)&numeroBloco,(void *)&(blocoAtual[sizeof(DWORD)*k]),sizeof(DWORD));
-		printf("bloco %d",numeroBloco);
 		if(blocoInicial == k+2 ){
 			byteInicial = fileHandleList[handle].seekPtr % tamanhoBlocoBytes;
 			leBytesBloco(bytesRestantes,size,buffer,numeroBloco,(contador),byteInicial);
@@ -1650,7 +1649,6 @@ int read2(FILE2 handle, char *buffer, int size){
 		for(; j < tamanhoBlocoBytes && i < size && i < bytesRestantes;i++,j++){
 			buffer[i] = blocoAtual[j];
 		} 
-		printf("i:%d",i);
 	}
 	
 	bytesRestantes -= i;
@@ -1680,8 +1678,6 @@ int read2(FILE2 handle, char *buffer, int size){
 
 	}
 	fileHandleList[handle].seekPtr += i;
-	if(fileHandleList[handle].seekPtr == inode.bytesFileSize);
-		fileHandleList[handle].seekPtr == -1;
 	refreshCurrentPath();
 	return i;		
 
@@ -1696,7 +1692,6 @@ int write2 (FILE2 handle,char *buffer, int size) {
 	int addrBloc, posIniWri;
 	int blocIni = 0;
 	int restSize = size;
-	int i,ptr;
 	struct t2fs_inode iNode;
 	
 	
@@ -2075,14 +2070,14 @@ int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
 			
 			record = procuraDirEntryIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
 			//printf("%d\n",record.TypeVal);
-			*seekPointer ++;
-			numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
-			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			*(seekPointer) ++;
+			numeroBlocoRecord   = (*seekPointer)   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			numeroInternoRecord = (*seekPointer) % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 *seekPointer <= (diretorioInode.bytesFileSize/ sizeof(struct t2fs_record))&&
-		 *seekPointer * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
-		if(record.TypeVal != TYPEVAL_INVALIDO &&  *seekPointer < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
+		( *seekPointer) <= (diretorioInode.bytesFileSize/ sizeof(struct t2fs_record))&&
+		 (*seekPointer )* sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)));
+		if(record.TypeVal != TYPEVAL_INVALIDO &&  (*seekPointer) < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
@@ -2099,14 +2094,14 @@ int readdirAux (int inodeNumber,int *seekPointer, DIRENT2 *dentry) {
 	if(numeroBlocoRecord >=(tamanhoBlocoBytes/sizeof(DWORD) + 2)){
 		do{
 			record = procuraDirEntryDuplaIndirecao(diretorioInode.singleIndPtr,numeroInternoRecord,numeroBlocoRecord-2);
-			*seekPointer ++;
-			numeroBlocoRecord   = *seekPointer   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
-			numeroInternoRecord = *seekPointer % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			*(seekPointer) ++;
+			numeroBlocoRecord   = (*seekPointer)   /(tamanhoBlocoBytes/sizeof(struct t2fs_record));
+			numeroInternoRecord = (*seekPointer) % (tamanhoBlocoBytes/sizeof(struct t2fs_record));
 			
 		}while(record.TypeVal == TYPEVAL_INVALIDO &&
-		 *seekPointer   <= (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))&&
-		 *seekPointer * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
-		if(record.TypeVal != TYPEVAL_INVALIDO &&  *seekPointer < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
+		 (*seekPointer)   <= (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))&&
+		 (*seekPointer) * sizeof(struct t2fs_record) <= tamanhoBlocoBytes * (tamanhoBlocoBytes/sizeof(DWORD)) * (tamanhoBlocoBytes/sizeof(DWORD)));
+		if(record.TypeVal != TYPEVAL_INVALIDO &&  (*seekPointer) < (diretorioInode.bytesFileSize/sizeof(struct t2fs_record))){
 			//monta estrutura de retorno
 			strcpy(dentry->name,record.name);
 			recordInode      = leInode(record.inodeNumber);
